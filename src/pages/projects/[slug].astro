@@ -1,0 +1,168 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MarkdownContent from '../../components/MarkdownContent.astro';
+import { listAllProjects, getProject } from '../../lib/api';
+
+export async function getStaticPaths() {
+  const projects = await listAllProjects();
+  return projects.map((p) => ({ params: { slug: p.slug } }));
+}
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/projects');
+
+const project = await getProject(slug);
+const isInactive = project.state === 'Inactive';
+const glyph = project.title.charAt(0).toUpperCase();
+---
+
+<BaseLayout
+  title={`${project.title} · AJN Portfolio`}
+  description={project.description}
+>
+  <main>
+    <div class="container">
+      <a href="/projects" class="back-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Back to projects</span>
+      </a>
+
+      <article class="article">
+        <div class="article__cover">
+          <span class="article__cover-glyph" aria-hidden="true">{glyph}</span>
+          {project.urlThumbnail && (
+            <img
+              src={project.urlThumbnail}
+              alt=""
+              loading="eager"
+              decoding="async"
+              onerror="this.style.display='none'"
+            />
+          )}
+        </div>
+
+        <header class="article__header">
+          <p class="article__eyebrow">{isInactive ? 'Project · Inactive' : 'Project'}</p>
+          <h1 class="article__title">{project.title}</h1>
+          <p class="article__lede">{project.description}</p>
+        </header>
+
+        <MarkdownContent content={project.content} />
+      </article>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: var(--space-6);
+  }
+  main {
+    padding-block: var(--space-12) var(--space-24);
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-bottom: var(--space-8);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+  .back-link:hover {
+    color: var(--color-fg);
+  }
+
+  .article {
+    max-width: 48rem;
+    margin-inline: auto;
+  }
+
+  .article__cover {
+    aspect-ratio: 21 / 9;
+    background: color-mix(in oklab, var(--color-fg) 4%, var(--color-surface));
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-8);
+  }
+  .article__cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at 50% 50%,
+      color-mix(in oklab, var(--color-accent) 15%, transparent),
+      transparent 60%
+    );
+    pointer-events: none;
+  }
+  .article__cover-glyph {
+    font-family: var(--font-display);
+    font-size: clamp(6rem, 15vw, 12rem);
+    font-weight: 500;
+    font-style: italic;
+    color: var(--color-fg);
+    letter-spacing: -0.05em;
+    z-index: 1;
+  }
+  .article__cover img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 2;
+  }
+
+  .article__header {
+    margin-bottom: var(--space-12);
+  }
+
+  .article__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+    margin-bottom: var(--space-4);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .article__eyebrow::before {
+    content: '';
+    width: 1.5rem;
+    height: 1px;
+    background: var(--color-accent);
+    display: inline-block;
+  }
+
+  .article__title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: var(--space-4);
+  }
+  .article__lede {
+    font-size: 1.2rem;
+    color: var(--color-muted);
+    line-height: 1.55;
+    margin-bottom: var(--space-8);
+  }
+</style>

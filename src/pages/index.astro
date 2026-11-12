@@ -1,0 +1,775 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import ContributionCard from '../components/ContributionCard.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import BentoGrid from '../components/BentoGrid.astro';
+import BentoCard from '../components/BentoCard.astro';
+import Carousel from '../components/Carousel.astro';
+import { listRecentProjects, listRecentContributions } from '../lib/api';
+import { SITE_CONTENT } from '../lib/content';
+
+// Cada sección fethea independiente. Si una falla (e.g. backend caído durante
+// un deploy parcial) la otra sigue renderizando y mostramos un placeholder
+// en vez de romper todo el build.
+let projects: Awaited<ReturnType<typeof listRecentProjects>> = [];
+let projectsError: string | null = null;
+try {
+  projects = await listRecentProjects(5);
+} catch (err) {
+  projectsError = err instanceof Error ? err.message : 'Unknown error';
+}
+
+let contributions: Awaited<ReturnType<typeof listRecentContributions>> = [];
+let contributionsError: string | null = null;
+try {
+  contributions = await listRecentContributions(4);
+} catch (err) {
+  contributionsError = err instanceof Error ? err.message : 'Unknown error';
+}
+
+// Featured = primer proyecto. Va dentro del card "Último proyecto" del bento.
+// El carrusel muestra TODOS los proyectos (incluyendo el featured). Con pocos
+// proyectos la duplicación no molesta; si crece el set y duele visualmente,
+// evaluar sacar la card featured del bento.
+const featured = projects[0];
+
+// Cuando solo hay contributions, ese panel arranca visible. Si hay ambos
+// (o solo projects), projects arranca visible: "mis proyectos" pesa más
+// que "mis contribuciones externas" en una landing.
+const onlyContributions = projects.length === 0 && contributions.length > 0;
+---
+
+<BaseLayout title="AJN · Adrián Joaquín Naum" description="Portfolio de Adrián Joaquín Naum — estudiante de Análisis de Sistemas, backend en .NET y frontend con Astro y React.">
+  <SiteHeader />
+
+  <main id="main">
+    <!-- HERO — compacto. El bento cuenta el resto. -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero__inner">
+          <span class="eyebrow hero__eyebrow">Estudiante · Buenos Aires, Argentina</span>
+          <h1 class="hero__title">Adrián Joaquín Naum</h1>
+          <p class="hero__tagline">Backend en .NET, frontend con Astro. Construyo, rompo, aprendo.</p>
+          <div class="hero__ctas">
+            <a href="/projects" class="btn btn--primary">Ver proyectos</a>
+            <a href="#contact" class="btn btn--secondary" data-open-contact>Contactar</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {projects.length > 0 && (
+      <>
+        {/* BENTO. 5 cards en grid de 12 cols; si no hay featured no se renderiza. */}
+      <section class="section">
+        <div class="container">
+          <BentoGrid>
+            {/* Card 1: Último proyecto (tall) */}
+            <BentoCard variant="tall">
+              <span class="eyebrow eyebrow--card">Último proyecto</span>
+              <ProjectCard project={featured!} />
+              <a href={`/projects/${featured!.slug}`} class="bento-card__link">
+                <span>Ver proyecto</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </a>
+            </BentoCard>
+
+            {/* Card 2: Stack (default, span 3) — dos niveles visuales */}
+            <BentoCard>
+              <span class="eyebrow eyebrow--card">Stack</span>
+              <div class="bento-stack">
+                <div class="bento-stack__group">
+                  {SITE_CONTENT.stack.primary.map((s) => (
+                    <span class="bento-stack__chip bento-stack__chip--primary">{s}</span>
+                  ))}
+                </div>
+                <div class="bento-stack__group">
+                  {SITE_CONTENT.stack.familiar.map((s) => (
+                    <span class="bento-stack__chip">{s}</span>
+                  ))}
+                </div>
+              </div>
+            </BentoCard>
+
+            {/* Card 3: Disponible (default, span 3) — badge verde + bullets */}
+            <BentoCard>
+              <span class="eyebrow eyebrow--card">Disponible</span>
+              <div class="bento-available">
+                <div class="bento-available__head">
+                  <span class="bento-available__dot" aria-hidden="true"></span>
+                  <p>{SITE_CONTENT.availableText}</p>
+                </div>
+                <ul class="bento-available__list" aria-label="Lo que busco">
+                  {SITE_CONTENT.availableItems.map((item) => (
+                    <li class="bento-available__item">{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </BentoCard>
+
+            {/* Card 4: About (default, span 4) */}
+            <BentoCard>
+              <span class="eyebrow eyebrow--card">Sobre mí</span>
+              <p class="bento-about__text">{SITE_CONTENT.aboutText}</p>
+            </BentoCard>
+
+            {/* Card 5: Contacto (wide, span 8), ancla #contact. */}
+            <BentoCard variant="wide" as="section" id="contact">
+              <span class="eyebrow eyebrow--card">Contacto</span>
+              <div class="bento-contact">
+                <a
+                  href="#contact"
+                  class="bento-contact__link email-link"
+                  data-email-user="naumadrianjoaquin"
+                  data-email-domain="gmail.com"
+                  aria-label="Enviarme un email"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="14" rx="2" />
+                    <path d="m3 7 9 6 9-6" />
+                  </svg>
+                  <span>Email</span>
+                </a>
+                <a
+                  href={SITE_CONTENT.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="bento-contact__link"
+                >
+                  <svg class="bento-contact__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+                    <path d="M9 18c-4.51 2-5-2-7-2" />
+                  </svg>
+                  <span>GitHub</span>
+                </a>
+              </div>
+            </BentoCard>
+          </BentoGrid>
+        </div>
+      </section>
+      </>
+    )}
+
+    {(projects.length > 0 || contributions.length > 0) && (
+      <>
+      {/* RECENT. Toggle entre carruseles; solo se muestra si hay ambos tipos. */}
+      <section class="section recent">
+        <div class="container">
+          <header class="section__head">
+            <div>
+              <span class="eyebrow">Trabajos</span>
+              <h2>Recientes</h2>
+            </div>
+            <a
+              href={onlyContributions ? '/contributions' : '/projects'}
+              class="view-all"
+              data-view-all
+            >
+              <span data-view-all-label>Ver todo</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </header>
+
+          {projects.length > 0 && contributions.length > 0 && (
+            <div class="recent__toggle-wrap">
+              <div class="recent__toggle" role="tablist" aria-label="Filtrar por tipo">
+                <button
+                  type="button"
+                  class="recent__toggle-btn is-active"
+                  data-filter="projects"
+                  role="tab"
+                  aria-selected="true"
+                >
+                  Proyectos
+                  <span class="recent__toggle-count">{projects.length}</span>
+                </button>
+                <button
+                  type="button"
+                  class="recent__toggle-btn"
+                  data-filter="contributions"
+                  role="tab"
+                  aria-selected="false"
+                >
+                  Contribuciones
+                  <span class="recent__toggle-count">{contributions.length}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div class="recent__panels">
+            {projects.length > 0 && (
+              /* Panel projects. Arranca visible salvo cuando solo hay contributions. */
+              <div
+                class="recent__panel"
+                data-panel="projects"
+                hidden={onlyContributions}
+              >
+                <Carousel id="recent-projects" label="Proyectos recientes">
+                  {projects.map((p) => <ProjectCard project={p} />)}
+                </Carousel>
+              </div>
+            )}
+
+            {contributions.length > 0 && (
+              <div
+                class="recent__panel"
+                data-panel="contributions"
+                hidden={!onlyContributions}
+              >
+                <Carousel id="recent-contributions" label="Contribuciones recientes">
+                  {contributions.map((c, i) => <ContributionCard contribution={c} index={i} />)}
+                </Carousel>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+      </>
+    )}
+
+    {(projectsError || contributionsError) && (
+      <section class="section">
+        <div class="container">
+          <p class="empty">
+            {projectsError && `No se pudieron cargar los proyectos: ${projectsError}`}
+            {projectsError && contributionsError && ' · '}
+            {contributionsError && `No se pudieron cargar las contribuciones: ${contributionsError}`}
+          </p>
+        </div>
+      </section>
+    )}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <span>&copy; {new Date().getFullYear()} Adrián Joaquín Naum.</span>
+      <nav class="footer-links" aria-label="Redes y contacto">
+        <a
+          href={SITE_CONTENT.githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="footer-links__item"
+          aria-label="GitHub"
+        >
+          <svg class="footer-links__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+            <path d="M9 18c-4.51 2-5-2-7-2" />
+          </svg>
+          <span>GitHub</span>
+        </a>
+        <a
+          href="#"
+          class="footer-links__item email-link"
+          data-email-user="naumadrianjoaquin"
+          data-email-domain="gmail.com"
+          aria-label="Enviarme un email"
+        >
+          <svg class="footer-links__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="m22 7-10 6L2 7" />
+          </svg>
+          <span>Email</span>
+        </a>
+        <a
+          href="https://www.linkedin.com/in/adrianbeep"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="footer-links__item"
+          aria-label="LinkedIn"
+        >
+          <svg class="footer-links__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" />
+            <rect x="2" y="9" width="4" height="12" />
+            <circle cx="4" cy="4" r="2" />
+          </svg>
+          <span>LinkedIn</span>
+        </a>
+      </nav>
+    </div>
+  </footer>
+</BaseLayout>
+
+<script>
+  /**
+   * Toggle del panel Recientes + Carruseles.
+   *
+   * Si projects y contributions coexisten:
+   *   - Toggling muestra/oculta el panel activo via `hidden`.
+   *   - Actualiza el href del "Ver todo".
+   *
+   * Si solo hay uno, no se monta ningún handler (no hay toggle visible).
+   */
+  function bindRecentToggle() {
+    document.querySelectorAll<HTMLElement>('.recent__toggle').forEach((toggle) => {
+      if (toggle.dataset.bound) return;
+      toggle.dataset.bound = 'true';
+      const section = toggle.closest('.section');
+      const buttons = toggle.querySelectorAll<HTMLButtonElement>('.recent__toggle-btn');
+      const viewAll = section?.querySelector<HTMLAnchorElement>('[data-view-all]');
+
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const filter = btn.dataset.filter as 'projects' | 'contributions';
+          buttons.forEach((b) => {
+            const isActive = b === btn;
+            b.classList.toggle('is-active', isActive);
+            b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+          });
+          section?.querySelectorAll<HTMLElement>('.recent__panel').forEach((panel) => {
+            panel.hidden = panel.dataset.panel !== filter;
+          });
+          if (viewAll) {
+            viewAll.href = `/${filter}`;
+          }
+        });
+      });
+    });
+  }
+  bindRecentToggle();
+  document.addEventListener('astro:page-load', bindRecentToggle);
+</script>
+
+<style>
+  /* Local container (la utility está en global.css; se reescribe igual acá
+     para que la página funcione si el global drift). */
+  .container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: var(--space-6);
+  }
+
+  main {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HERO — versión corta. Sin lede largo: el bento cubre todo. */
+  /* Hero — ocupa toda la primera pantalla. El visitante abre la página y ve
+     solo el nombre; el resto (bento, recent, footer) aparece después de scrollear.
+     min-height: 100dvh (no 100vh) respeta la barra dinámica en mobile. El
+     padding-block queda chico para no acumular con el min-height — la altura
+     viene del viewport, no del padding.
+     Layout vertical: el inner va centrado con flex para que el bloque
+     "eyebrow + título + tagline + CTAs" quede balanceado sin importar
+     cuánto mide el viewport. */
+  .hero {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    padding-block: var(--space-12);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .hero > .container {
+    width: 100%;
+  }
+  .hero__inner {
+    max-width: 52rem;
+  }
+  .hero__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+    font-size: 0.8125rem;
+    color: #4B5563;
+  }
+  [data-theme='dark'] .hero__eyebrow {
+    color: var(--color-muted);
+  }
+  .hero__title {
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 7vw, 5rem);
+    font-weight: 500;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    margin-bottom: var(--space-7);
+  }
+  .hero__tagline {
+    font-size: 1.25rem;
+    color: var(--color-fg);
+    max-width: 36rem;
+    line-height: 1.5;
+    margin-bottom: var(--space-10);
+  }
+  .hero__ctas {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  /* Buttons (public page — admin tiene los suyos). */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: var(--radius);
+    transition: all var(--duration-fast) var(--ease-out);
+    border: 1px solid var(--color-border);
+    text-decoration: none;
+    color: var(--color-fg);
+  }
+  .btn--primary {
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+    border-color: var(--color-accent);
+  }
+  .btn--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px color-mix(in oklab, var(--color-accent) 30%, transparent);
+  }
+  .btn--secondary {
+    background: transparent;
+    color: var(--color-fg);
+  }
+  .btn--secondary:hover {
+    border-color: var(--color-fg);
+    background-color: color-mix(in oklab, var(--color-fg) 4%, transparent);
+  }
+
+  /* BENTO — stack con dos niveles visuales.
+     Primary (lo que uso para construir): chip con acento sutil de fondo.
+     Familiar (lo que manejo pero no es mi fuerte): chip outline, mismo
+     lenguaje que los tags originales. La separación entre grupos es solo
+     un margin — sin divider, sin label, para no saturar la card. */
+  .bento-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  .bento-stack__group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .bento-stack__group + .bento-stack__group {
+    /* Sube un toque la opacidad del segundo grupo para reforzar la jerarquía
+       "uso / conozco" sin necesidad de divider ni label. */
+    opacity: 0.75;
+  }
+  .bento-stack__chip {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .bento-stack__chip--primary {
+    color: var(--color-fg);
+    background-color: color-mix(in oklab, var(--color-fg) 6%, transparent);
+    border-color: color-mix(in oklab, var(--color-fg) 18%, var(--color-border));
+  }
+
+  .bento-available {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  .bento-available__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
+  /* El dot usa baseline como anclaje: se alinea con la primera línea del
+         <p>. El transform sube el dot 1px para compensar la diferencia
+         visual entre la baseline del círculo y la baseline del texto. */
+  /* NOTA: los estilos de size/color/animación del dot viven en el bloque
+     .bento-available__dot de más abajo — solo agregamos el transform acá. */
+  .bento-available__head p {
+    /* min-width: 0 permite que el <p> wrap correctamente dentro del flex
+       sin que el contenido se pegue al dot o rompa la card. */
+    min-width: 0;
+    flex: 1;
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: var(--color-fg);
+    font-weight: 500;
+  }
+  /* Lista de "lo que busco": bullets custom con dash mono, color muted
+     para no competir con la headline verde. Sin divider antes — el gap
+     del flex padre ya marca la separación visual. */
+  .bento-available__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .bento-available__item {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--color-muted);
+    padding-left: var(--space-4);
+    position: relative;
+  }
+  .bento-available__item::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--color-border);
+    font-weight: 400;
+  }
+  .bento-available__dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 0 0 color-mix(in oklab, #10b981 70%, transparent);
+    animation: availability-pulse 2.4s ease-out infinite;
+    /* Compensa la diferencia visual entre baseline del círculo (que cae
+       al ras del texto) y la baseline del <p> vecino en flex baseline. */
+    transform: translateY(0.125rem);
+  }
+  @keyframes availability-pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in oklab, #10b981 60%, transparent); }
+    70% { box-shadow: 0 0 0 8px color-mix(in oklab, #10b981 0%, transparent); }
+    100% { box-shadow: 0 0 0 0 color-mix(in oklab, #10b981 0%, transparent); }
+  }
+
+  .bento-about__text {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--color-fg);
+    margin: 0;
+  }
+
+  /* Link al final de la card del último proyecto. */
+  .bento-card__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+  .bento-card__link:hover {
+    color: var(--color-fg);
+  }
+
+  .bento-contact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-6);
+  }
+  .bento-contact__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-fg);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+  .bento-contact__link svg {
+    width: 16px;
+    height: 16px;
+    color: currentColor;
+    flex-shrink: 0;
+  }
+  .bento-contact__link:hover {
+    color: var(--color-accent);
+  }
+
+  /* SECTION */
+  .section {
+    padding-block: var(--space-24);
+    border-top: 1px solid var(--color-border);
+  }
+  .section__head {
+    margin-bottom: var(--space-12);
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+  }
+  .section__head h2 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-top: var(--space-3);
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .eyebrow::before {
+    content: '';
+    width: 1.5rem;
+    height: 1px;
+    background: var(--color-accent);
+    display: inline-block;
+  }
+  /* Los eyebrow de las cards del bento no llevan la línea azul — la card
+     ya es el contenedor y la línea repetida se siente decorativa. Solo
+     la mantienen los eyebrows de sección (hero, "Trabajos", etc.). */
+  .eyebrow--card::before {
+    display: none;
+  }
+  .view-all {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    transition: color var(--duration-fast) var(--ease-out);
+    text-decoration: none;
+  }
+  .view-all:hover {
+    color: var(--color-accent);
+  }
+
+  /* RECENT — toggle + panels */
+  .recent__toggle-wrap {
+    text-align: center;
+    margin-bottom: var(--space-8);
+  }
+  .recent__toggle {
+    display: inline-flex;
+    padding: var(--space-1) var(--space-2);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    gap: var(--space-1);
+  }
+  .recent__toggle-btn {
+    padding: var(--space-2) var(--space-8);
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    background: transparent;
+    border: 0;
+    border-radius: calc(var(--radius) - 0.125rem);
+    cursor: pointer;
+    font-family: var(--font-sans);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    transition:
+      color var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out);
+  }
+  .recent__toggle-btn:hover {
+    color: var(--color-fg);
+  }
+  .recent__toggle-btn.is-active {
+    color: var(--color-fg);
+    background-color: var(--color-bg);
+  }
+  .recent__toggle-count {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-muted);
+    font-weight: 400;
+  }
+  .recent__toggle-btn.is-active .recent__toggle-count {
+    color: var(--color-fg);
+    opacity: 0.6;
+  }
+  .recent__panels {
+    display: block;
+  }
+  .recent__panel {
+    display: block;
+  }
+  .recent__panel[hidden] {
+    display: none;
+  }
+
+  .empty {
+    color: var(--color-muted);
+    font-style: italic;
+  }
+
+  /* FOOTER */
+  .site-footer {
+    border-top: 1px solid var(--color-border);
+    padding-block: var(--space-8);
+    color: var(--color-muted);
+    font-size: 0.875rem;
+    font-family: var(--font-mono);
+  }
+  .site-footer__inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+  .site-footer .meta {
+    display: flex;
+    gap: var(--space-4);
+  }
+  /* Footer center: links a redes + email. Mismo lenguaje mono que el resto
+     del footer; íconos con opacity reducida que suben en hover para no
+     pelear con el copyright a la izquierda.
+     El `flex-shrink: 0` en el nav impide que se aplaste cuando el footer
+     hace wrap en mobile — el `<nav>` mantiene su layout horizontal hasta
+     que el breakpoint siguiente lo apila. */
+  .footer-links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    flex-shrink: 0;
+  }
+  .footer-links__item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-muted);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out);
+    white-space: nowrap;
+  }
+  .footer-links__item:hover {
+    color: var(--color-fg);
+  }
+  .footer-links__icon {
+    /* Tamaño fijo vía CSS (no inline) para que el font-size del <span>
+       no deforme el ícono. Lucide-style: stroke 2, linecap round. */
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    opacity: 0.8;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+  .footer-links__item:hover .footer-links__icon {
+    opacity: 1;
+  }
+</style>

@@ -1,0 +1,174 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/fraunces';
+import '@fontsource-variable/jetbrains-mono';
+
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Override the canonical URL. Defaults to the current page. */
+  canonicalUrl?: string;
+  /** OG image absolute URL. Defaults to /og-image.svg. */
+  ogImage?: string;
+}
+
+const {
+  title,
+  description = 'Portfolio de Adrián Joaquín Naum — estudiante de Análisis de Sistemas, backend en .NET y frontend con Astro y React.',
+  canonicalUrl,
+  ogImage = '/og-image.svg',
+} = Astro.props;
+
+const SITE = Astro.site?.toString().replace(/\/$/, '') ?? 'https://adrianbeep.dev';
+const canonical = canonicalUrl ?? new URL(Astro.url.pathname, SITE).toString();
+const ogImageAbs = ogImage.startsWith('http') ? ogImage : `${SITE}${ogImage}`;
+
+const personJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Adrián Joaquín Naum',
+  alternateName: 'adrianbeep',
+  url: SITE,
+  // No "email" field here on purpose — scrapers harvest it. The contact
+  // path lives in the obfuscated `.email-link` markup + inline script.
+  jobTitle: 'Systems Analysis Student · Backend Developer (.NET)',
+  description,
+  knowsAbout: ['C#', '.NET', 'Astro', 'React', 'TypeScript', 'SQL'],
+  sameAs: ['https://github.com/adrianbeep'],
+};
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="author" content="Adrián Joaquín Naum" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0A0A0A" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="canonical" href={canonical} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageAbs} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:locale" content="es_AR" />
+    <meta property="og:site_name" content="AJN · Adrián Joaquín Naum" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageAbs} />
+
+    <!-- Structured data -->
+    <script type="application/ld+json" set:html={JSON.stringify(personJsonLd)} />
+
+    <title>{title}</title>
+
+    {/* Theme bootstrap — runs before paint, no flash */}
+    <script is:inline>
+      (function () {
+        const stored = localStorage.getItem('theme');
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = stored ?? (systemDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+
+    <ClientRouter />
+
+    {/*
+      Email obfuscation — the real address is never in the static HTML.
+      Each .email-link carries the user + domain in data attributes and
+      a small script wires the href and the copy on load (and again on
+      every ClientRouter swap, since it swaps the body in place).
+    */}
+    <script is:inline>
+      (function () {
+        function obfuscate() {
+          var at = String.fromCharCode(64);
+          document.querySelectorAll('.email-link').forEach(function (el) {
+            var user = el.getAttribute('data-email-user');
+            var domain = el.getAttribute('data-email-domain');
+            if (!user || !domain) return;
+            var mail = user + at + domain;
+            el.setAttribute('href', 'mailto:' + mail);
+            // Only the FIRST .email-link in the document gets its textContent
+            // replaced with the address — and ONLY if it has no rich content
+            // (icon + label + desc) already. The `data-no-overwrite` attribute
+            // opts out of the replacement so cards/icons in the contact section
+            // keep their layout.
+            if (el.dataset.noOverwrite) return;
+            if (el.dataset.labeled) return;
+            // If the element has child elements (icon + label), don't clobber
+            // them — just set the href and leave the visual alone.
+            if (el.children.length > 0) {
+              el.dataset.labeled = '1';
+              return;
+            }
+            el.textContent = mail;
+            el.dataset.labeled = '1';
+          });
+          document.querySelectorAll('[data-open-contact]').forEach(function (el) {
+            if (el.dataset.wired === '1') return;
+            el.dataset.wired = '1';
+            el.addEventListener('click', function (e) {
+              var ref = document.querySelector('.email-link[href^="mailto:"]');
+              if (ref) {
+                e.preventDefault();
+                window.location.href = ref.getAttribute('href');
+              }
+            });
+          });
+        }
+        obfuscate();
+        document.addEventListener('astro:page-load', obfuscate);
+      })();
+    </script>
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Saltar al contenido</a>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  .skip-link {
+    position: absolute;
+    top: -3rem;
+    left: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    background-color: var(--color-accent);
+    color: var(--color-accent-fg);
+    border-radius: var(--radius);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 1000;
+    transition: top var(--duration-fast) var(--ease-out);
+  }
+  .skip-link:focus,
+  .skip-link:focus-visible {
+    top: var(--space-4);
+    /* Outline contrastante con el fondo del link para que el indicador de
+       foco sea visible (el global :focus-visible es del mismo color que
+       el bg del link y se pierde). */
+    outline: 3px solid var(--color-accent-fg);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--color-accent);
+  }
+</style>

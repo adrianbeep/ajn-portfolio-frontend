@@ -1,0 +1,224 @@
+---
+/**
+ * Carrusel horizontal con scroll-snap.
+ *
+ * Diseño:
+ *   - El padre renderiza las cards (ProjectCard / ContributionCard) en el slot.
+ *   - El viewport tiene overflow-x:auto con scroll-snap. La paginación es
+ *     nativa (touch + trackpad + scrollbar). Sin librerías.
+ *   - Dos flechas solo aparecen cuando hay overflow (medido en JS); en mobile
+ *     se ocultan completamente — el swipe nativo alcanza.
+ *
+ * Accesibilidad:
+ *   - aria-roledescription="carousel" + aria-label.
+ *   - Las flechas son <button>, no <a>: no navegan, scrollean.
+ *   - El track no es aria-live (no auto-avanza); las flechas tienen aria-label
+ *     claro para screen readers.
+ *
+ * JS:
+ *   - is:inline porque necesita correr DOM-ready en la posición del componente,
+ *     no en un bundle diferido. Si hubiera más carousels, el script es por
+ *     instancia pero el setup es idempotente (guard `data-carousel-bound`).
+ */
+
+interface Props {
+  /** Único por instancia — se usa para scopear el JS sin colisiones. */
+  id: string;
+  /** aria-label del contenedor. */
+  label: string;
+}
+
+const { id, label } = Astro.props;
+---
+
+<section class="carousel" aria-roledescription="carousel" aria-label={label} data-carousel-id={id}>
+  <div class="carousel__viewport">
+    <div class="carousel__track">
+      <slot />
+    </div>
+  </div>
+  <button
+    type="button"
+    class="carousel__arrow carousel__arrow--prev"
+    aria-label={`${label} — anterior`}
+    data-carousel-prev={id}
+  >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  </button>
+  <button
+    type="button"
+    class="carousel__arrow carousel__arrow--next"
+    aria-label={`${label} — siguiente`}
+    data-carousel-next={id}
+  >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </button>
+</section>
+
+<script is:inline>
+  (function () {
+    function bind() {
+      document.querySelectorAll('.carousel').forEach(function (root) {
+        if (root.dataset.bound === '1') return;
+        root.dataset.bound = '1';
+
+        var viewport = root.querySelector('.carousel__viewport');
+        var prev = root.querySelector('[data-carousel-prev]');
+        var next = root.querySelector('[data-carousel-next]');
+        if (!viewport || !prev || !next) return;
+
+        function update() {
+          var overflow = viewport.scrollWidth > viewport.clientWidth + 1;
+          // Si no hay overflow, ocultá ambas flechas (data attr para CSS fallback).
+          if (overflow) {
+            root.removeAttribute('data-no-overflow');
+          } else {
+            root.setAttribute('data-no-overflow', '');
+          }
+
+          // Disabled state: el primero en 0, el último en el extremo.
+          var atStart = viewport.scrollLeft <= 1;
+          var atEnd = viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth - 1;
+          prev.disabled = atStart;
+          next.disabled = atEnd;
+        }
+
+        prev.addEventListener('click', function () {
+          viewport.scrollBy({ left: -viewport.clientWidth, behavior: 'smooth' });
+        });
+        next.addEventListener('click', function () {
+          viewport.scrollBy({ left: viewport.clientWidth, behavior: 'smooth' });
+        });
+
+        // Recalcular en resize y al cargar (imágenes tardías pueden cambiar
+        // el ancho real del track).
+        viewport.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+        // Esperá un frame por si las imágenes todavía no tienen tamaño.
+        requestAnimationFrame(update);
+        // Y otra pasada después de que carguen las imágenes del track.
+        window.addEventListener('load', update);
+      });
+    }
+    bind();
+    document.addEventListener('astro:page-load', bind);
+  })();
+</script>
+
+<style>
+  /* El contenedor permite overflow vertical (la scrollbar horizontal es del
+     viewport) y NO es focusable — solo el viewport interno scrolla. */
+  .carousel {
+    position: relative;
+  }
+
+  .carousel__viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    /* Padding lateral para que las flechas (negativamente posicionadas)
+       no tapen contenido. */
+    padding-inline: var(--space-3);
+
+    /* Hide scrollbar cross-browser — el feedback se da por las flechas
+       y el scroll-snap. En mobile se oculta todo y se usa swipe. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .carousel__viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .carousel__track {
+    display: flex;
+    gap: var(--space-4);
+    /* Padding right extra = peek del siguiente item, así el usuario sabe
+       que hay scroll horizontal. Sin padding-right el último item queda
+       alineado y se ve "cerrado". */
+    padding-right: var(--space-6);
+  }
+
+  /* Ancho de cada item:
+       desktop  → 3 visibles (con peek del 4°)
+       tablet   → 2 visibles
+       mobile   → 1.2 visibles (peek claro, swipe hint)
+     El flex-basis + peek se controla con padding-right del track. */
+  .carousel__track > :global(*) {
+    flex: 0 0 calc((100% - var(--space-4) * 2) / 3);
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+
+  @media (max-width: 900px) {
+    .carousel__track > :global(*) {
+      flex: 0 0 calc((100% - var(--space-4)) / 2);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .carousel__track > :global(*) {
+      flex: 0 0 85%;
+    }
+  }
+
+  /* Flechas — circulares, 40px, centradas verticalmente. Posicionadas
+     como "offset negativo" sobre el viewport. El viewport lleva padding
+     lateral para que no se monten sobre el contenido. */
+  .carousel__arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+
+    width: 2.5rem;
+    height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    color: var(--color-fg);
+    cursor: pointer;
+
+    transition:
+      border-color var(--duration-fast) var(--ease-out),
+      background-color var(--duration-fast) var(--ease-out),
+      opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .carousel__arrow:hover:not(:disabled) {
+    border-color: var(--color-fg);
+    background-color: color-mix(in oklab, var(--color-fg) 4%, var(--color-surface));
+  }
+
+  .carousel__arrow:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .carousel__arrow--prev {
+    left: -0.5rem;
+  }
+  .carousel__arrow--next {
+    right: -0.5rem;
+  }
+
+  /* Si no hay overflow (medido por JS), fallback CSS para ocultar. */
+  .carousel[data-no-overflow] .carousel__arrow {
+    display: none;
+  }
+
+  /* Mobile: el swipe nativo se encarga. Sin flechas. */
+  @media (max-width: 640px) {
+    .carousel__arrow {
+      display: none;
+    }
+  }
+</style>

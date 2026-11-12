@@ -1,0 +1,297 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdminModal from '../../../components/admin/AdminModal.astro';
+import EmptyState from '../../../components/admin/EmptyState.astro';
+import { listAdminProjects } from '../../../lib/api';
+import '../../../styles/editorial.css';
+
+const projects = await listAdminProjects({
+  cookie: Astro.request.headers.get('cookie') ?? '',
+});
+
+const totalCount = projects.length;
+
+function relativeTime(iso: string): string {
+  const date = new Date(iso).getTime();
+  const now = Date.now();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'recién';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `hace ${diffHours} h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'ayer';
+  if (diffDays < 7) return `hace ${diffDays} días`;
+  if (diffDays < 30) return `hace ${Math.floor(diffDays / 7)} sem`;
+  if (diffDays < 365) return `hace ${Math.floor(diffDays / 30)} meses`;
+  return `hace ${Math.floor(diffDays / 365)} años`;
+}
+
+const breadcrumbs = [
+  { label: 'Admin', href: '/admin' },
+  { label: 'Proyectos' },
+];
+---
+
+<AdminLayout
+  title="Proyectos"
+  breadcrumbs={breadcrumbs}
+  currentPath="/admin/projects"
+>
+  <article class="list-page">
+    <header>
+      <p class="eyebrow">
+        <span class="eyebrow__line" aria-hidden="true"></span>
+        Admin · Proyectos
+      </p>
+      <h1 class="page-title">Proyectos</h1>
+      <p class="page-lede">Editar y gestionar el portfolio público.</p>
+      <div class="page-actions">
+        <a href="/admin/projects/create" class="link-cta">
+          <span aria-hidden="true">+</span> Nuevo proyecto
+        </a>
+      </div>
+    </header>
+
+    {totalCount === 0 ? (
+      <EmptyState
+        title="Sin proyectos"
+        description="Empezá creando tu primer proyecto."
+      >
+        <a slot="actions" href="/admin/projects/create" class="btn-primary">
+          Crear el primero
+        </a>
+      </EmptyState>
+    ) : (
+      <>
+        <div class="search-bar">
+          <input
+            type="search"
+            class="search-input"
+            placeholder="Buscar por título o slug…"
+            data-list-search
+            aria-label="Buscar proyectos"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="entries" data-list>
+          {projects.map((p) => (
+            <article
+              class="entry"
+              data-searchable-title={p.title.toLowerCase()}
+              data-searchable-slug={p.slug.toLowerCase()}
+              data-slug={p.slug}
+              data-title={p.title}
+              data-state={p.deletedAt ? 'Deleted' : 'Active'}
+            >
+              <div class="entry__main">
+                <a href={`/admin/projects/${p.slug}`} class="entry__title-link">
+                  <h3 class="entry__title">{p.title}</h3>
+                </a>
+                <code class="entry__slug">/{p.slug}</code>
+              </div>
+              <div class="entry__meta">
+                <span class="entry__status" data-state={p.deletedAt ? 'Deleted' : 'Active'}>
+                  {p.deletedAt ? 'Eliminado' : 'Activo'}
+                </span>
+                <time class="entry__time" datetime={p.createdAt}>
+                  {relativeTime(p.createdAt)}
+                </time>
+                <div class="entry__actions">
+                  {p.deletedAt ? (
+                    <button
+                      type="button"
+                      class="entry__action entry__action--restore"
+                      data-action="restore"
+                      data-modal-open="confirm-restore"
+                      aria-label={`Restaurar ${p.title}`}
+                    >
+                      Restaurar
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      class="entry__action entry__action--danger"
+                      data-action="delete"
+                      data-modal-open="confirm-delete"
+                      aria-label={`Eliminar ${p.title}`}
+                    >
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <p class="list-page__no-results" data-list-no-results hidden>
+          Ningún proyecto coincide con la búsqueda.
+        </p>
+      </>
+    )}
+  </article>
+
+  <AdminModal id="confirm-delete" title="¿Eliminar proyecto?" variant="danger">
+    <p data-modal-body>
+      Esta acción es reversible desde la papelera.
+    </p>
+    <Fragment slot="actions">
+      <button type="button" class="btn" data-modal-close>Cancelar</button>
+      <button type="button" class="btn btn--danger" data-delete-confirm>Eliminar</button>
+    </Fragment>
+  </AdminModal>
+
+  <AdminModal id="confirm-restore" title="¿Restaurar proyecto?" variant="default">
+    <p data-modal-body>
+      El proyecto volverá a estar visible en la lista pública.
+    </p>
+    <Fragment slot="actions">
+      <button type="button" class="btn" data-modal-close>Cancelar</button>
+      <button type="button" class="btn btn--primary" data-restore-confirm>Restaurar</button>
+    </Fragment>
+  </AdminModal>
+</AdminLayout>
+
+<script>
+  // === Projects list client-side controller =================================
+  //
+  // Responsibilities:
+  //   - Wire the search input (filters by title or slug, case-insensitive)
+  //   - Run the action buttons (delete/restore) through the shared modals
+  //   - Pipe the row's slug into the active modal so confirm buttons can read it
+  //
+  // Filtering is purely visual: rows are hidden via the [hidden] attribute.
+
+  function dispatchToast(variant: 'success' | 'error' | 'info', message: string, title?: string): void {
+    window.dispatchEvent(
+      new CustomEvent('admin:toast', {
+        detail: { variant, message, title: title ?? (variant === 'success' ? 'Listo' : 'Error') },
+      }),
+    );
+  }
+
+  function applySearch(root: HTMLElement, query: string): void {
+    const rows = root.querySelectorAll<HTMLElement>('.entry');
+    const normalizedQuery = query.trim().toLowerCase();
+    let visibleCount = 0;
+    rows.forEach((row) => {
+      const title = row.dataset.searchableTitle ?? '';
+      const slug = row.dataset.searchableSlug ?? '';
+      const matches =
+        normalizedQuery === '' || title.includes(normalizedQuery) || slug.includes(normalizedQuery);
+      row.hidden = !matches;
+      if (matches) visibleCount += 1;
+    });
+    const noResults = document.querySelector<HTMLElement>('[data-list-no-results]');
+    if (noResults) noResults.hidden = visibleCount !== 0;
+  }
+
+  function bindSearch(): void {
+    const input = document.querySelector<HTMLInputElement>('[data-list-search]');
+    const list = document.querySelector<HTMLElement>('[data-list]');
+    if (!input || !list) return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    input.addEventListener('input', () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        applySearch(list, input.value);
+      }, 200);
+    });
+  }
+
+  function bindActions(): void {
+    // Los handlers de body pre-pop y slug-pipe para los botones de
+    // acción (delete/restore) los maneja el AdminModal.astro de forma
+    // delegada sobre `document`. Acá sólo queda el wiring de los botones
+    // de confirmación del modal, que viven en HTML estático dentro de
+    // esta página y se re-bindan en cada astro:page-load.
+    //
+    // Confirm delete — DELETE /api/admin/projects/{slug}.
+    const deleteBtn = document.querySelector<HTMLButtonElement>('[data-delete-confirm]');
+    if (deleteBtn && !deleteBtn.dataset.bound) {
+      deleteBtn.dataset.bound = 'true';
+      deleteBtn.addEventListener('click', async () => {
+        const modal = document.getElementById('confirm-delete');
+        const slug = modal?.dataset.slug;
+        if (!slug || !modal) return;
+
+        deleteBtn.disabled = true;
+        const originalLabel = deleteBtn.textContent;
+        deleteBtn.textContent = 'Eliminando…';
+
+        try {
+          const res = await fetch(`/api/admin/projects/${encodeURIComponent(slug)}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+          if (!res.ok && res.status !== 204) {
+            const problem = await res.json().catch(() => null);
+            throw new Error(problem?.detail ?? problem?.title ?? `HTTP ${res.status}`);
+          }
+          modal.dispatchEvent(new CustomEvent('admin:modal:close'));
+          window.location.assign(`/admin/projects?toast=deleted&slug=${encodeURIComponent(slug)}`);
+        } catch (err) {
+          console.error('Delete error:', err);
+          deleteBtn.disabled = false;
+          deleteBtn.textContent = originalLabel;
+          const message = err instanceof Error && err.message.includes('HTTP')
+            ? 'No se pudo eliminar. Probá de nuevo.'
+            : 'Error de red. Verificá que el backend esté corriendo.';
+          dispatchToast('error', message, 'Error al eliminar');
+        }
+      });
+    }
+
+    // Confirm restore — POST /api/admin/projects/{slug}/restore.
+    const restoreBtn = document.querySelector<HTMLButtonElement>('[data-restore-confirm]');
+    if (restoreBtn && !restoreBtn.dataset.bound) {
+      restoreBtn.dataset.bound = 'true';
+      restoreBtn.addEventListener('click', async () => {
+        const modal = document.getElementById('confirm-restore');
+        const slug = modal?.dataset.slug;
+        if (!slug || !modal) return;
+
+        restoreBtn.disabled = true;
+        const originalLabel = restoreBtn.textContent;
+        restoreBtn.textContent = 'Restaurando…';
+
+        try {
+          const res = await fetch(`/api/admin/projects/${encodeURIComponent(slug)}/restore`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+          if (!res.ok) {
+            const problem = await res.json().catch(() => null);
+            throw new Error(problem?.detail ?? problem?.title ?? `HTTP ${res.status}`);
+          }
+          modal.dispatchEvent(new CustomEvent('admin:modal:close'));
+          window.location.assign(`/admin/projects?toast=restored&slug=${encodeURIComponent(slug)}`);
+        } catch (err) {
+          console.error('Restore error:', err);
+          restoreBtn.disabled = false;
+          restoreBtn.textContent = originalLabel;
+          const message = err instanceof Error && err.message.includes('HTTP')
+            ? 'No se pudo restaurar. Probá de nuevo.'
+            : 'Error de red. Verificá que el backend esté corriendo.';
+          dispatchToast('error', message, 'Error al restaurar');
+        }
+      });
+    }
+  }
+
+  function bindAll(): void {
+    bindSearch();
+    bindActions();
+  }
+
+  bindAll();
+  document.addEventListener('astro:page-load', bindAll);
+</script>

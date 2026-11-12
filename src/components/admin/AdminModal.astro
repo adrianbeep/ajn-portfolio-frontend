@@ -1,0 +1,485 @@
+---
+/**
+ * AdminModal — accessible confirmation/dialog modal used across the admin
+ * shell. Slot-based: default slot is the body, the `actions` slot is the
+ * footer (typically a Cancel + Confirm pair).
+ *
+ * ## Opening and closing
+ *
+ * Two ways to open:
+ *
+ *  1. Click a trigger that has `data-modal-open="<id>"` — the modal with
+ *     that id opens. Optionally include `data-modal-message` to override
+ *     the body copy (the slot is left untouched; useful for delete lists
+ *     where each row has a different name).
+ *
+ *  2. Programmatically:
+ *     ```js
+ *     document.getElementById('my-modal')
+ *       .dispatchEvent(new CustomEvent('admin:modal:open', {
+ *         detail: { /* arbitrary *\/ },
+ *       }));
+ *     ```
+ *
+ * Close paths: backdrop click, `[data-modal-close]` button, or Escape.
+ *
+ * ## Focus management
+ *
+ * On open, focus moves to the first focusable element inside the dialog
+ * (or the dialog itself if there is none). Tab and Shift-Tab are trapped
+ * to the dialog's contents. On close, focus is restored to the element
+ * that opened the modal.
+ *
+ * ## Animation
+ *
+ * State transitions:
+ *   hidden → opening:  `hidden` removed, `[data-state="opening"]` set,
+ *                       next frame `[data-state="open"]`
+ *   open  → closing:  `[data-state="closing"]` set, transitionend sets
+ *                       `hidden`
+ * The two-stage cycle lets the open animation play reliably across view
+ * transitions. Respects `prefers-reduced-motion` (handled globally in
+ * `global.css`).
+ */
+
+interface Props {
+  id: string;
+  title: string;
+  variant?: 'default' | 'danger';
+  /** Label for the close (×) button. Defaults to "Cerrar". */
+  closeLabel?: string;
+}
+
+const { id, title, variant = 'default', closeLabel = 'Cerrar' } = Astro.props;
+const titleId = `${id}-title`;
+const descId = `${id}-desc`;
+---
+
+<div
+  id={id}
+  class:list={['admin-modal', `admin-modal--${variant}`]}
+  data-state="closed"
+  hidden
+>
+  <div class="admin-modal__backdrop" data-modal-close></div>
+  <div
+    class="admin-modal__dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby={titleId}
+    aria-describedby={descId}
+    tabindex="-1"
+  >
+    <header class="admin-modal__header">
+      <h3 id={titleId} class="admin-modal__title">{title}</h3>
+      <button
+        type="button"
+        class="admin-modal__close"
+        data-modal-close
+        aria-label={closeLabel}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6L6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </header>
+    <div id={descId} class="admin-modal__body">
+      <slot />
+    </div>
+    <footer class="admin-modal__actions">
+      <slot name="actions" />
+    </footer>
+  </div>
+</div>
+
+<script>
+  // === Modal controller ====================================================
+  //
+  // Un único listener delegado en `document` cubre apertura y cierre para
+  // TODOS los modales de la página. El documento no se reemplaza en un
+  // swap de <ClientRouter />, así que el listener sobrevive cada
+  // navegación — sin re-bind por página, sin carrera con la hidratación.
+  // El patrón viejo (attach() per-element con flag `data.bound`) se
+  // rompía en la primera navegación SPA: el script podía ejecutarse
+  // antes de que los botones existieran, y los listeners nunca se
+  // adjuntaban. La delegación mata la race condition de raíz.
+
+  const FOCUSABLE_SELECTOR = [
+    'a[href]',
+    'area[href]',
+    'button:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
+
+  interface ActiveModal {
+    el: HTMLElement;
+    trigger: HTMLElement | null;
+    onKeydown: (e: KeyboardEvent) => void;
+  }
+
+  let currentlyOpen: ActiveModal | null = null;
+
+  function getFocusable(root: HTMLElement): HTMLElement[] {
+    return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+      .filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+  }
+
+  function trapTab(e: KeyboardEvent): void {
+    if (!currentlyOpen) return;
+    const focusables = getFocusable(currentlyOpen.el.querySelector('.admin-modal__dialog')!);
+    if (focusables.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  function onKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeActive();
+    } else if (e.key === 'Tab') {
+      trapTab(e);
+    }
+  }
+
+  function closeActive(): void {
+    if (!currentlyOpen) return;
+    const { el, trigger, onKeydown } = currentlyOpen;
+    el.dataset.state = 'closing';
+    el.removeEventListener('keydown', onKeydown);
+
+    const onEnd = (): void => {
+      el.hidden = true;
+      el.dataset.state = 'closed';
+      el.removeEventListener('transitionend', onEnd);
+    };
+    el.addEventListener('transitionend', onEnd);
+
+    // Fallback in case no transitionend does fire (reduced motion, etc.)
+    setTimeout(() => {
+      if (!el.hidden) {
+        el.hidden = true;
+        el.dataset.state = 'closed';
+      }
+    }, 400);
+
+    if (trigger && typeof trigger.focus === 'function') {
+      trigger.focus();
+    }
+    currentlyOpen = null;
+  }
+
+  function openModal(el: HTMLElement, trigger: HTMLElement | null): void {
+    // If another modal is already open, close it first.
+    if (currentlyOpen && currentlyOpen.el !== el) {
+      closeActive();
+    }
+    el.hidden = false;
+    // Allow the next frame for the closed→opening transition to register
+    // before flipping to open.
+    requestAnimationFrame(() => {
+      el.dataset.state = 'open';
+    });
+
+    const handler = (e: KeyboardEvent) => onKeydown(e);
+    el.addEventListener('keydown', handler);
+
+    currentlyOpen = { el, trigger, onKeydown: handler };
+
+    // Focus the first interactive element inside the dialog.
+    const dialog = el.querySelector<HTMLElement>('.admin-modal__dialog');
+    if (dialog) {
+      const focusables = getFocusable(dialog);
+      if (focusables.length > 0) {
+        focusables[0].focus();
+      } else {
+        dialog.focus();
+      }
+    }
+  }
+
+  // === Wiring delegado ====================================================
+  //
+  // Un solo `click` en document para triggers de apertura y cierre, más
+  // listeners para los eventos programáticos `admin:modal:open` /
+  // `admin:modal:close` que disparan los handlers de página después de
+  // un fetch. Todo se registra una sola vez al cargar el módulo y
+  // persiste entre navegaciones — no hace falta `astro:page-load`.
+
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (!target || typeof target.closest !== 'function') return;
+
+    // Apertura: [data-modal-open="<id>"] (o cualquier ancestro con ese attr).
+    const modalTrigger = target.closest<HTMLElement>('[data-modal-open]');
+    if (modalTrigger) {
+      e.preventDefault();
+      const id = modalTrigger.dataset.modalOpen;
+      if (!id) return;
+      const modal = document.getElementById(id);
+      if (!modal) return;
+
+      // Si el trigger vive dentro de una fila (.entry), pre-poblamos el
+      // body con el título de la fila y pipeamos el slug al dataset del
+      // modal. Esto absorbe el binding per-element que tenían las
+      // páginas (y que se rompía con ClientRouter) sin que cada página
+      // tenga que re-implementarlo.
+      const row = modalTrigger.closest<HTMLElement>('.entry');
+      if (row) {
+        const title = row.dataset.title;
+        const action = modalTrigger.dataset.action;
+        if (title) {
+          const body = modal.querySelector<HTMLElement>('[data-modal-body]');
+          if (body) {
+            body.textContent =
+              action === 'restore'
+                ? `¿Restaurar "${title}"? Va a volver a estar visible en la lista pública.`
+                : `¿Eliminar "${title}"? Esta acción es reversible desde la papelera.`;
+          }
+        }
+        const slug = row.dataset.slug;
+        if (slug) modal.dataset.slug = slug;
+      }
+
+      // Override opcional del body desde data-modal-message (no toca el slot;
+      // útil para casos donde el trigger no está dentro de una .entry).
+      const message = modalTrigger.dataset.modalMessage;
+      if (message) {
+        const body = modal.querySelector<HTMLElement>('[data-modal-body]');
+        if (body) body.textContent = message;
+      }
+      // Reenvía cualquier data-* extra del trigger al modal.
+      for (const key of Object.keys(modalTrigger.dataset)) {
+        if (key === 'modalOpen' || key === 'modalMessage') continue;
+        modal.dataset[key] = modalTrigger.dataset[key];
+      }
+      openModal(modal, modalTrigger);
+      return;
+    }
+
+    // Cierre: [data-modal-close] (×, backdrop, botón Cancelar).
+    const closeBtn = target.closest<HTMLElement>('[data-modal-close]');
+    if (closeBtn) {
+      closeActive();
+    }
+  });
+
+  // Los handlers de página (después del DELETE/POST) disparan
+  // `admin:modal:close` sobre el modal. Delegamos en document para no
+  // atar el listener a un modal concreto: el modal activo es siempre
+  // `currentlyOpen` y closeActive() ya es idempotente.
+  document.addEventListener('admin:modal:close', () => {
+    closeActive();
+  });
+  document.addEventListener('admin:modal:open', (e) => {
+    const modal = e.target as HTMLElement | null;
+    if (!modal || !modal.classList.contains('admin-modal')) return;
+    const detail = (e as CustomEvent<{ trigger?: HTMLElement | null }>).detail;
+    openModal(modal, detail?.trigger ?? null);
+  });
+</script>
+
+<style>
+  .admin-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+  }
+
+  .admin-modal[hidden] {
+    display: none;
+  }
+
+  .admin-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+
+  .admin-modal[data-state='open'] .admin-modal__backdrop {
+    opacity: 1;
+  }
+
+  .admin-modal__dialog {
+    position: relative;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    max-width: 30rem;
+    width: 100%;
+    box-shadow: 0 24px 48px color-mix(in oklab, var(--color-fg) 18%, transparent);
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+    transition: opacity var(--duration-base) var(--ease-out),
+                transform var(--duration-base) var(--ease-out);
+    max-height: calc(100dvh - 2 * var(--space-4));
+    overflow-y: auto;
+  }
+
+  .admin-modal[data-state='open'] .admin-modal__dialog {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  .admin-modal--danger .admin-modal__title {
+    color: #b91c1c;
+  }
+
+  :global([data-theme='dark']) .admin-modal--danger .admin-modal__title {
+    color: #f87171;
+  }
+
+  .admin-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+
+  .admin-modal__title {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--color-fg);
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .admin-modal__close {
+    background: none;
+    border: 0;
+    padding: var(--space-1);
+    margin: -0.25rem;
+    color: var(--color-muted);
+    cursor: pointer;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .admin-modal__close:hover {
+    color: var(--color-fg);
+    background-color: color-mix(in oklab, var(--color-fg) 6%, transparent);
+  }
+
+  .admin-modal__close:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .admin-modal__body {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin-bottom: var(--space-6);
+  }
+
+  .admin-modal__body p {
+    margin: 0;
+  }
+
+  .admin-modal__body p + p {
+    margin-top: var(--space-2);
+  }
+
+  .admin-modal__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-3);
+  }
+
+  .admin-modal__actions :global(.btn),
+  .admin-modal__actions :global(button),
+  .admin-modal__actions :global(a) {
+    min-height: 2.5rem;
+    padding: var(--space-2) var(--space-5);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid var(--color-border);
+    background-color: transparent;
+    color: var(--color-fg);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+  }
+
+  .admin-modal__actions :global(.btn:hover),
+  .admin-modal__actions :global(button:hover),
+  .admin-modal__actions :global(a:hover) {
+    border-color: var(--color-fg);
+  }
+
+  .admin-modal__actions :global(.btn--primary) {
+    background-color: var(--color-accent);
+    color: var(--color-accent-fg);
+    border-color: transparent;
+  }
+
+  .admin-modal__actions :global(.btn--primary:hover) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in oklab, var(--color-accent) 25%, transparent);
+  }
+
+  .admin-modal__actions :global(.btn--danger) {
+    background-color: #dc2626;
+    color: #fff;
+    border-color: transparent;
+  }
+
+  :global([data-theme='dark']) .admin-modal__actions :global(.btn--danger) {
+    background-color: #ef4444;
+    color: #fff;
+  }
+
+  .admin-modal__actions :global(.btn--danger:hover) {
+    background-color: #b91c1c;
+  }
+
+  @media (max-width: 480px) {
+    .admin-modal__dialog {
+      padding: var(--space-5);
+    }
+
+    .admin-modal__actions {
+      flex-direction: column-reverse;
+    }
+
+    .admin-modal__actions :global(.btn),
+    .admin-modal__actions :global(button),
+    .admin-modal__actions :global(a) {
+      width: 100%;
+      min-height: 2.75rem;
+    }
+  }
+</style>

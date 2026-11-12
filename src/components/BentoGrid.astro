@@ -1,0 +1,79 @@
+---
+/**
+ * Layout del bento. CSS Grid de 12 columnas con spans fijos por posición.
+ *
+ * Estrategia: :nth-child(N) sobre `.bento-card`. Mantiene a `BentoCard.astro`
+ * presentacional (no recibe prop de span). Si el orden de las cards cambia,
+ * cambiá los spans acá — están documentados con comentarios.
+ *
+ * Layout (desktop, 12 cols):
+ *   hijo 1 (tall, último proyecto)  → span 6
+ *   hijo 2 (default, stack)        → span 3
+ *   hijo 3 (default, disponible)   → span 3
+ *   hijo 4 (default, about)        → span 4
+ *   hijo 5 (wide, contacto)        → span 8
+ *
+ * En mobile todo es 1 col — no hace falta un layout distinto a columna
+ * simple porque cada card ya tiene su propio padding interno.
+ */
+---
+
+<div class="bento-grid">
+  <slot />
+</div>
+
+<style>
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  /* Spans explícitos por posición. minmax(0, 1fr) en el grid template evita
+     overflows cuando una card tiene contenido que no se rompe (icons, etc). */
+  .bento-grid > :global(.bento-card):nth-child(1) {
+    grid-column: span 6;
+  }
+  .bento-grid > :global(.bento-card):nth-child(2) {
+    grid-column: span 3;
+  }
+  .bento-grid > :global(.bento-card):nth-child(3) {
+    grid-column: span 3;
+  }
+  .bento-grid > :global(.bento-card):nth-child(4) {
+    grid-column: span 4;
+  }
+  .bento-grid > :global(.bento-card):nth-child(5) {
+    grid-column: span 8;
+  }
+
+  /* Tablet ancho medio: reduce spans en proporción. Las cards siguen
+     apareciendo en pares / grupos reconocibles, no se rompe el layout. */
+  @media (max-width: 900px) {
+    .bento-grid > :global(.bento-card):nth-child(1) {
+      grid-column: span 12;
+    }
+    .bento-grid > :global(.bento-card):nth-child(2) {
+      grid-column: span 6;
+    }
+    .bento-grid > :global(.bento-card):nth-child(3) {
+      grid-column: span 6;
+    }
+    .bento-grid > :global(.bento-card):nth-child(4) {
+      grid-column: span 6;
+    }
+    .bento-grid > :global(.bento-card):nth-child(5) {
+      grid-column: span 12;
+    }
+  }
+
+  /* Mobile: stack vertical, todas span 12. */
+  @media (max-width: 640px) {
+    .bento-grid {
+      grid-template-columns: 1fr;
+    }
+    .bento-grid > :global(.bento-card) {
+      grid-column: span 1;
+    }
+  }
+</style>

@@ -1,0 +1,147 @@
+@import './tokens.css';
+
+@layer reset, base, components, utilities;
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  * {
+    margin: 0;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    overflow-wrap: break-word;
+  }
+}
+
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    transition: background-color var(--duration-base) var(--ease-out),
+                color var(--duration-base) var(--ease-out);
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  a {
+    color: var(--color-accent);
+    text-decoration-color: color-mix(in oklab, var(--color-accent) 30%, transparent);
+    text-underline-offset: 0.2em;
+    transition: text-decoration-color var(--duration-fast) var(--ease-out);
+  }
+
+  a:hover {
+    text-decoration-color: var(--color-accent);
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-accent) 30%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius);
+  }
+}
+
+@layer utilities {
+  .container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: var(--space-6);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+ * Theme toggle icons — show only the OPPOSITE of the current theme.
+ *
+ * Why this lives here instead of ThemeToggle.astro's scoped <style>:
+ *   Astro's scoped styles attach a `data-astro-cid-XXX` to the rule, and
+ *   that id is tied to the component instance. When <ClientRouter />
+ *   does a soft navigation, Astro re-renders the ThemeToggle and the
+ *   new SVG carries a new cid — the old rule with the old cid stops
+ *   matching, both icons become visible, and the user sees the bug
+ *   until they click the toggle (which fires the JS sync and fixes it).
+ *
+ *   Defining the rule in this global file with plain class selectors
+ *   means it matches every .icon-sun / .icon-moon regardless of cid,
+ *   on every page and every client-side navigation.
+ * ========================================================================== */
+
+[data-theme='light'] .theme-toggle .icon-moon,
+[data-theme='dark'] .theme-toggle .icon-sun {
+  display: none !important;
+}

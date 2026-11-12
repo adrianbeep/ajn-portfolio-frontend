@@ -1,0 +1,65 @@
+---
+/**
+ * EmptyState — generic "nothing here" panel used for empty lists, empty
+ * search results, and similar no-content states across the admin. The
+ * title and description form the message; the `actions` slot holds
+ * CTAs (e.g. "Create your first project").
+ *
+ * Visual treatment is intentionally calm: dashed border, generous padding,
+ * centered text. It should never compete with the page's primary content.
+ */
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<div class="empty-state" role="status">
+  <h3 class="empty-state__title">{title}</h3>
+  {description && <p class="empty-state__description">{description}</p>}
+  {Astro.slots.has('actions') && (
+    <div class="empty-state__actions">
+      <slot name="actions" />
+    </div>
+  )}
+</div>
+
+<style>
+  .empty-state {
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-12) var(--space-8);
+    text-align: center;
+    background-color: color-mix(in oklab, var(--color-surface) 70%, transparent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .empty-state__title {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--color-fg);
+    margin: 0;
+  }
+
+  .empty-state__description {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    max-width: 32rem;
+    margin: 0;
+  }
+
+  .empty-state__actions {
+    margin-top: var(--space-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: center;
+  }
+</style>

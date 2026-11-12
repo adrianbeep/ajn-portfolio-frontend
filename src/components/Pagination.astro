@@ -1,0 +1,97 @@
+---
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  /** Base path WITHOUT trailing slash or page number, e.g. "/projects" */
+  basePath: string;
+}
+
+const { currentPage, totalPages, basePath } = Astro.props;
+
+function pageHref(page: number): string {
+  if (page === 1) return basePath;
+  return `${basePath}/${page}`;
+}
+
+const prevHref = currentPage > 1 ? pageHref(currentPage - 1) : null;
+const nextHref = currentPage < totalPages ? pageHref(currentPage + 1) : null;
+---
+
+{totalPages > 1 && (
+  <nav class="pagination" aria-label="Pagination">
+    {prevHref ? (
+      <a href={prevHref} class="pagination__link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Previous</span>
+      </a>
+    ) : (
+      <span class="pagination__link is-disabled">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Previous</span>
+      </span>
+    )}
+    <span class="pagination__info">Page {currentPage} of {totalPages}</span>
+    {nextHref ? (
+      <a href={nextHref} class="pagination__link">
+        <span>Next</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </a>
+    ) : (
+      <span class="pagination__link is-disabled">
+        <span>Next</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </span>
+    )}
+  </nav>
+)}
+
+<style>
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-6);
+    margin-top: var(--space-12);
+    padding-top: var(--space-8);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .pagination__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-fg);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: opacity var(--duration-fast) var(--ease-out);
+  }
+
+  .pagination__link:hover {
+    opacity: 0.7;
+  }
+
+  .pagination__link.is-disabled {
+    color: var(--color-muted);
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .pagination__info {
+    color: var(--color-muted);
+    font-size: 0.875rem;
+    font-family: var(--font-mono);
+  }
+</style>

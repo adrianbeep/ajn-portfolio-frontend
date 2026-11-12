@@ -1,0 +1,95 @@
+---
+/**
+ * StatusBadge — a small pill that renders a record's state in a consistent
+ * color across the admin. Use anywhere you'd previously hand-rolled a
+ * `.badge` element.
+ *
+ * `state` is a string union covering the values the admin surfaces today:
+ *   - `Active`   — green   (visible project/contribution)
+ *   - `Inactive` — amber   (soft-paused, hidden from public list)
+ *   - `Deleted`  — red     (soft-deleted, present only in admin lists)
+ *   - `Archived` — gray    (reserved for future use)
+ *
+ * `label` overrides the displayed text (defaults to the state name).
+ */
+type StatusKind = 'Active' | 'Inactive' | 'Deleted' | 'Archived';
+
+interface Props {
+  state: StatusKind;
+  label?: string;
+}
+
+const { state, label } = Astro.props;
+const text = label ?? state;
+const variant = state.toLowerCase();
+---
+
+<span class:list={['status-badge', `status-badge--${variant}`]}>
+  {text}
+</span>
+
+<style>
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.1875rem 0.625rem;
+    border-radius: 999px;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
+  }
+
+  .status-badge::before {
+    content: '';
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background-color: currentColor;
+    opacity: 0.75;
+  }
+
+  .status-badge--active {
+    color: #047857;
+    background-color: color-mix(in oklab, #10b981 14%, transparent);
+    border-color: color-mix(in oklab, #10b981 30%, transparent);
+  }
+
+  :global([data-theme='dark']) .status-badge--active {
+    color: #6ee7b7;
+    background-color: color-mix(in oklab, #34d399 14%, transparent);
+    border-color: color-mix(in oklab, #34d399 30%, transparent);
+  }
+
+  .status-badge--inactive {
+    color: #b45309;
+    background-color: color-mix(in oklab, #f59e0b 14%, transparent);
+    border-color: color-mix(in oklab, #f59e0b 30%, transparent);
+  }
+
+  :global([data-theme='dark']) .status-badge--inactive {
+    color: #fcd34d;
+    background-color: color-mix(in oklab, #fbbf24 14%, transparent);
+    border-color: color-mix(in oklab, #fbbf24 30%, transparent);
+  }
+
+  .status-badge--deleted {
+    color: #b91c1c;
+    background-color: color-mix(in oklab, #ef4444 14%, transparent);
+    border-color: color-mix(in oklab, #ef4444 30%, transparent);
+  }
+
+  :global([data-theme='dark']) .status-badge--deleted {
+    color: #fca5a5;
+    background-color: color-mix(in oklab, #f87171 14%, transparent);
+    border-color: color-mix(in oklab, #f87171 30%, transparent);
+  }
+
+  .status-badge--archived {
+    color: var(--color-muted);
+    background-color: color-mix(in oklab, var(--color-fg) 6%, transparent);
+    border-color: color-mix(in oklab, var(--color-fg) 12%, transparent);
+  }
+</style>

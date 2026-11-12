@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!--
+    OG image for the AJN portfolio. Dark, minimal, editorial.
+    Used when sharing the link on LinkedIn / Twitter / WhatsApp / etc.
+  -->
+  <defs>
+    <style>
+      .bg { fill: #0A0A0A; }
+      .text { fill: #FAFAFA; font-family: Georgia, 'Times New Roman', serif; }
+      .muted { fill: #9CA3AF; font-family: 'SF Mono', 'JetBrains Mono', monospace; }
+      .accent { fill: #3B82F6; }
+      .dot { fill: #10B981; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1200" height="630" />
+
+  <!-- Top eyebrow: mono uppercase -->
+  <text class="muted" x="80" y="100" font-size="18" letter-spacing="2">AJN · ADRIÁN NAUM</text>
+  <line x1="80" y1="120" x2="140" y2="120" stroke="#3B82F6" stroke-width="2" />
+
+  <!-- Hero title: display serif, big -->
+  <text class="text" x="80" y="280" font-size="76" font-weight="500" letter-spacing="-2">Construyo backends</text>
+  <text class="text" x="80" y="360" font-size="76" font-weight="500" letter-spacing="-2">en <tspan class="accent" font-style="italic">.NET</tspan> y frontends</text>
+  <text class="text" x="80" y="440" font-size="76" font-weight="500" letter-spacing="-2">con Astro + React.</text>
+
+  <!-- Lede -->
+  <text class="muted" x="80" y="540" font-size="22">Estudiante de Análisis de Sistemas · Backend &amp; Fullstack</text>
+
+  <!-- Brand mark bottom right -->
+  <text class="text" x="1120" y="580" font-size="28" font-weight="600" text-anchor="end">AJN</text>
+  <circle class="dot" cx="1115" cy="572" r="5" />
+
+  <!-- Bottom-left: URL -->
+  <text class="muted" x="80" y="580" font-size="16">adrianbeep.dev</text>
+</svg>

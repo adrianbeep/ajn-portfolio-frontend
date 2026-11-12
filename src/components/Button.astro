@@ -1,0 +1,62 @@
+---
+interface Props {
+  href?: string;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  type?: 'button' | 'submit';
+}
+
+const { href, variant = 'primary', type = 'button' } = Astro.props;
+const Tag = href ? 'a' : 'button';
+---
+
+<Tag
+  href={href}
+  type={!href ? type : undefined}
+  class:list={['btn', `btn--${variant}`]}
+>
+  <slot />
+</Tag>
+
+<style>
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius);
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all var(--duration-fast) var(--ease-out);
+    cursor: pointer;
+  }
+
+  .btn--primary {
+    background-color: var(--color-accent);
+    color: var(--color-accent-fg);
+  }
+
+  .btn--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in oklab, var(--color-accent) 25%, transparent);
+  }
+
+  .btn--secondary {
+    background-color: var(--color-surface);
+    color: var(--color-fg);
+    border-color: var(--color-border);
+  }
+
+  .btn--secondary:hover {
+    border-color: var(--color-fg);
+  }
+
+  .btn--ghost {
+    background-color: transparent;
+    color: var(--color-fg);
+  }
+
+  .btn--ghost:hover {
+    background-color: color-mix(in oklab, var(--color-fg) 5%, transparent);
+  }
+</style>

@@ -1,0 +1,51 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdminProjectForm from '../../../components/admin/AdminProjectForm';
+import { getAdminProject } from '../../../lib/api';
+import { ApiError } from '../../../lib/api-client';
+import '../../../styles/editorial.css';
+
+const { slug } = Astro.params;
+if (!slug) {
+  return Astro.redirect('/admin/projects');
+}
+
+let project;
+try {
+  project = await getAdminProject(slug, {
+    cookie: Astro.request.headers.get('cookie') ?? '',
+  });
+} catch (err) {
+  if (err instanceof ApiError && err.status === 404) {
+    return Astro.redirect('/admin/projects?toast=notfound&slug=' + encodeURIComponent(slug));
+  }
+  throw err;
+}
+
+const breadcrumbs = [
+  { label: 'Admin', href: '/admin' },
+  { label: 'Proyectos', href: '/admin/projects' },
+  { label: `Editar · ${project.title}` },
+];
+---
+
+<AdminLayout
+  title={`Editar ${project.title}`}
+  breadcrumbs={breadcrumbs}
+  currentPath="/admin/projects"
+>
+  <article class="form-page">
+    <header>
+      <p class="eyebrow">
+        <span class="eyebrow__line" aria-hidden="true"></span>
+        Admin · Proyectos · Editar
+      </p>
+      <h1 class="page-title">Editar <em>{project.title}</em></h1>
+      <p class="page-lede">Modificar el proyecto en el portfolio público.</p>
+    </header>
+
+    <AdminProjectForm client:load mode="edit" initial={project} />
+  </article>
+</AdminLayout>

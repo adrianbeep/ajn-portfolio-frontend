@@ -1,0 +1,32 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdminProjectForm from '../../../components/admin/AdminProjectForm';
+import '../../../styles/editorial.css';
+
+const breadcrumbs = [
+  { label: 'Admin', href: '/admin' },
+  { label: 'Proyectos', href: '/admin/projects' },
+  { label: 'Nuevo' },
+];
+---
+
+<AdminLayout
+  title="Nuevo proyecto"
+  breadcrumbs={breadcrumbs}
+  currentPath="/admin/projects"
+>
+  <article class="form-page">
+    <header>
+      <p class="eyebrow">
+        <span class="eyebrow__line" aria-hidden="true"></span>
+        Admin · Proyectos · Nuevo
+      </p>
+      <h1 class="page-title">Nuevo <em>proyecto</em></h1>
+      <p class="page-lede">Crear una entrada en el portfolio público.</p>
+    </header>
+
+    <AdminProjectForm client:load mode="create" />
+  </article>
+</AdminLayout>

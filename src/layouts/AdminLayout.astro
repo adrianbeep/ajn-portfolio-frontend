@@ -1,0 +1,618 @@
+---
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import Breadcrumb from '../components/admin/Breadcrumb.astro';
+import AdminToast from '../components/admin/AdminToast.astro';
+import AdminModal from '../components/admin/AdminModal.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
+
+interface Crumb {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  /** HTML <title>. */
+  title: string;
+  /** Breadcrumb trail shown in the topbar. The last item is the current page. */
+  breadcrumbs: Crumb[];
+  /** Path of the current page, used to highlight the active nav item. */
+  currentPath: string;
+}
+
+const { title, breadcrumbs, currentPath } = Astro.props;
+const documentTitle = `${title} · Admin · AJN Portfolio`;
+
+const navItems: { href: string; label: string; match: (path: string) => boolean; badge?: string; disabled?: boolean }[] = [
+  {
+    href: '/admin',
+    label: 'Dashboard',
+    match: (p) => p === '/admin' || p === '/admin/',
+  },
+  {
+    href: '/admin/projects',
+    label: 'Proyectos',
+    match: (p) => p.startsWith('/admin/projects'),
+  },
+  {
+    href: '/admin/contributions',
+    label: 'Contribuciones',
+    match: (p) => p.startsWith('/admin/contributions'),
+  },
+];
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0A0A0A" />
+    <title>{documentTitle}</title>
+
+    {/* Theme bootstrap — runs before paint, no flash. Must match BaseLayout. */}
+    <script is:inline>
+      (function () {
+        const stored = localStorage.getItem('theme');
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = stored ?? (systemDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+
+    <ClientRouter />
+  </head>
+  <body>
+    <a href="#admin-main" class="admin-skip">Saltar al contenido</a>
+
+    <div class="admin-shell" data-sidebar-open="false">
+      <aside class="admin-shell__sidebar" aria-label="Navegación principal">
+        <a href="/admin" class="admin-shell__brand">
+          <span class="admin-shell__brand-mark">AJN</span>
+          <span class="admin-shell__brand-suffix">Admin</span>
+        </a>
+
+        <nav class="admin-shell__nav" aria-label="Secciones">
+          {navItems.map((item) => {
+            const active = item.match(currentPath);
+            return (
+              <a
+                href={item.href}
+                class:list={['admin-shell__nav-item', { 'is-active': active, 'is-disabled': !!item.disabled }]}
+                aria-current={active ? 'page' : undefined}
+                aria-disabled={item.disabled ? 'true' : undefined}
+                tabindex={item.disabled ? -1 : undefined}
+              >
+                <span>{item.label}</span>
+                {item.badge && <span class="admin-shell__nav-badge">{item.badge}</span>}
+              </a>
+            );
+          })}
+        </nav>
+
+        <div class="admin-shell__sidebar-footer">
+          <a href="/" class="admin-shell__back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            <span>Volver al sitio</span>
+          </a>
+        </div>
+      </aside>
+
+      <div
+        class="admin-shell__backdrop"
+        data-sidebar-backdrop
+        aria-hidden="true"
+      ></div>
+
+      <main id="admin-main" class="admin-shell__main">
+        <header class="admin-shell__topbar">
+          <button
+            type="button"
+            class="admin-shell__hamburger"
+            data-sidebar-toggle
+            aria-label="Abrir menú"
+            aria-expanded="false"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+
+          <Breadcrumb items={breadcrumbs} />
+
+          <h1 class="admin-shell__page-title">{title}</h1>
+
+          <div class="admin-shell__topbar-actions">
+            <ThemeToggle />
+            <button
+              type="button"
+              class="admin-shell__logout"
+              data-modal-open="confirm-logout"
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        </header>
+
+        <div class="admin-shell__content">
+          <slot />
+        </div>
+      </main>
+    </div>
+
+    <AdminToast position="top-right" />
+
+    <AdminModal id="confirm-logout" title="¿Cerrar sesión?" variant="default">
+      <p>Vas a salir del panel de administración. Podés volver a entrar cuando quieras con tu email y contraseña.</p>
+      <Fragment slot="actions">
+        <button type="button" class="btn btn--ghost" data-modal-close>Cancelar</button>
+        <button type="button" class="btn btn--primary" data-logout-confirm>Cerrar sesión</button>
+      </Fragment>
+    </AdminModal>
+
+    {/* Sidebar drawer + logout binding. Theme binding lives in the shared
+        script imported by ThemeToggle.astro (deduped by Astro). */}
+    <script>
+      // === Sidebar drawer ====================================================
+      function bindSidebar() {
+        const shell = document.querySelector<HTMLElement>('.admin-shell');
+        const toggle = document.querySelector<HTMLElement>('[data-sidebar-toggle]');
+        const backdrop = document.querySelector<HTMLElement>('[data-sidebar-backdrop]');
+        if (!shell || !toggle || toggle.dataset.bound) return;
+
+        const setOpen = (open: boolean) => {
+          shell.dataset.sidebarOpen = open ? 'true' : 'false';
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+          document.body.style.overflow = open ? 'hidden' : '';
+        };
+
+        toggle.addEventListener('click', () => {
+          const isOpen = shell.dataset.sidebarOpen === 'true';
+          setOpen(!isOpen);
+        });
+
+        backdrop?.addEventListener('click', () => setOpen(false));
+
+        // Close drawer on Escape and on link navigation (mobile UX).
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && shell.dataset.sidebarOpen === 'true') {
+            setOpen(false);
+          }
+        });
+
+        shell.querySelectorAll<HTMLAnchorElement>('.admin-shell__nav-item').forEach((link) => {
+          if (link.getAttribute('aria-disabled') === 'true') {
+            link.addEventListener('click', (e) => {
+              e.preventDefault();
+            });
+          }
+        });
+
+        document.addEventListener('astro:after-swap', () => setOpen(false));
+
+        toggle.dataset.bound = 'true';
+      }
+
+      // === Logout ============================================================
+      function bindLogout() {
+        const btn = document.querySelector<HTMLButtonElement>('[data-logout-confirm]');
+        if (!btn || btn.dataset.bound) return;
+        btn.dataset.bound = 'true';
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          btn.textContent = 'Cerrando…';
+          try {
+            await fetch('/api/admin/auth/logout', {
+              method: 'POST',
+              credentials: 'include',
+            });
+          } catch (err) {
+            console.error('Logout error:', err);
+          }
+          window.location.href = '/admin/login';
+        });
+      }
+
+      bindSidebar();
+      bindLogout();
+      document.addEventListener('astro:page-load', () => {
+        bindSidebar();
+        bindLogout();
+      });
+    </script>
+
+    {/* Theme binding shared with ThemeToggle.astro. */}
+    <script>
+      import '../scripts/theme-toggle';
+    </script>
+
+    {/*
+      Nuclear option: an `is:inline` script that runs at parse time on
+      every page load (no module, no HMR, no bundle, no dependency).
+      It reads the same data-theme that the head bootstrap set and
+      forces the theme-toggle icons to the right visibility via inline
+      style. Even if CSS layers, scoped rules, cached stylesheets,
+      browser extensions or anything else conspire against the rule
+      in ThemeToggle.astro, this script wins because inline styles
+      can't be beaten by a stylesheet rule short of !important on
+      the same property — and we already use `style.display` which
+      isn't a stylesheet rule at all. Runs on every page because
+      the AdminLayout wraps every authenticated admin page.
+    */}
+    <script is:inline>
+      (function () {
+        var html = document.documentElement;
+        var theme = html.getAttribute('data-theme');
+        if (!theme) {
+          try { theme = localStorage.getItem('theme') || ''; } catch (e) {}
+          if (!theme) {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+          }
+          html.setAttribute('data-theme', theme);
+        }
+        var sun = document.querySelector('.theme-toggle .icon-sun');
+        var moon = document.querySelector('.theme-toggle .icon-moon');
+        if (sun) sun.style.display = theme === 'dark' ? 'none' : '';
+        if (moon) moon.style.display = theme === 'light' ? 'none' : '';
+      })();
+    </script>
+  </body>
+</html>
+
+<style>
+  .admin-skip {
+    position: absolute;
+    top: -3rem;
+    left: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    background-color: var(--color-accent);
+    color: var(--color-accent-fg);
+    border-radius: var(--radius);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 1000;
+    transition: top var(--duration-fast) var(--ease-out);
+  }
+
+  .admin-skip:focus-visible {
+    top: var(--space-4);
+  }
+
+  .admin-shell {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    grid-template-rows: 64px 1fr;
+    grid-template-areas:
+      'topbar topbar'
+      'sidebar main';
+    min-height: 100vh;
+    background-color: var(--color-bg);
+  }
+
+  .admin-shell__topbar {
+    grid-area: topbar;
+  }
+
+  .admin-shell__sidebar {
+    grid-area: sidebar;
+  }
+
+  .admin-shell__main {
+    grid-area: main;
+  }
+
+  /* === Sidebar (desktop) =================================================== */
+  .admin-shell__sidebar {
+    background-color: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    padding: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    position: sticky;
+    /* top:64px (not 0) so the sidebar docks BELOW the 64px topbar.
+       If we used top:0 the sidebar would float up over the topbar on
+       scroll, and its solid surface color (var(--color-surface)) would
+       create a visible bar at y=0..64 in the sidebar's column — a
+       different color than the topbar's semi-transparent bg, which read
+       as a "black bar above the header". Docking below the topbar keeps
+       the two regions visually distinct. */
+    top: 64px;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
+  }
+
+  .admin-shell__brand {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    color: var(--color-fg);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .admin-shell__brand-mark {
+    color: var(--color-fg);
+  }
+
+  .admin-shell__brand-suffix {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-muted);
+    font-weight: 500;
+  }
+
+  .admin-shell__nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .admin-shell__nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    color: var(--color-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-radius: var(--radius);
+    border-left: 3px solid transparent;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out);
+  }
+
+  .admin-shell__nav-item:hover:not(.is-disabled) {
+    color: var(--color-fg);
+    background-color: color-mix(in oklab, var(--color-fg) 5%, transparent);
+  }
+
+  .admin-shell__nav-item.is-active {
+    color: var(--color-fg);
+    background-color: color-mix(in oklab, var(--color-fg) 8%, transparent);
+    font-weight: 500;
+    /* The accent rail sits INSIDE the item via border-left, so it can't
+       overflow the rounded corners or get clipped by the sidebar padding.
+       The padding-left compensates so the label stays in the same
+       horizontal position it had before. */
+    border-left-color: var(--color-accent);
+    padding-left: calc(var(--space-3) - 3px);
+  }
+
+  .admin-shell__nav-item.is-disabled {
+    color: var(--color-muted);
+    cursor: not-allowed;
+    opacity: 0.75;
+  }
+
+  .admin-shell__nav-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.1875rem 0.5625rem;
+    border-radius: 999px;
+    background-color: color-mix(in oklab, var(--color-accent) 22%, transparent);
+    color: var(--color-accent);
+    font-weight: 500;
+  }
+
+  .admin-shell__sidebar-footer {
+    margin-top: auto;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .admin-shell__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    min-height: 2.75rem;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .admin-shell__back:hover {
+    color: var(--color-fg);
+  }
+
+  /* === Backdrop (mobile drawer) ============================================ */
+  .admin-shell__backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 49;
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease-out);
+  }
+
+  /* === Topbar =============================================================== */
+  .admin-shell__main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .admin-shell__topbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    height: 64px;
+    padding: 0 var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    /* Solid bg matching the sidebar (var(--color-surface)). The previous
+       semi-transparent + backdrop-filter combo created a visible "bar"
+       above the header in dark mode (the blur over the dark bg read as
+       a darker band). */
+    background-color: var(--color-surface);
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
+
+  .admin-shell__topbar-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .admin-shell__page-title {
+    flex: 1;
+    margin: 0;
+    padding: 0 var(--space-6);
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--color-fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    text-align: center;
+  }
+
+  .admin-shell__hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    color: var(--color-fg);
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-out);
+    flex-shrink: 0;
+  }
+
+  .admin-shell__hamburger:hover {
+    border-color: var(--color-fg);
+  }
+
+  .admin-shell__logout {
+    padding: var(--space-2) var(--space-4);
+    background-color: transparent;
+    color: var(--color-fg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    min-height: 2.75rem;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .admin-shell__logout:hover {
+    border-color: var(--color-fg);
+    background-color: color-mix(in oklab, var(--color-fg) 4%, transparent);
+  }
+
+  /* === Content ============================================================= */
+  .admin-shell__content {
+    padding: var(--space-12) var(--space-12);
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* === Responsive: tablet + mobile ========================================= */
+  @media (max-width: 1023px) {
+    .admin-shell {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'topbar'
+        'main';
+    }
+
+    .admin-shell__sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 280px;
+      max-width: 80vw;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: transform var(--duration-base) var(--ease-out);
+      box-shadow: 0 16px 32px color-mix(in oklab, var(--color-fg) 12%, transparent);
+      border-right: 1px solid var(--color-border);
+    }
+
+    .admin-shell[data-sidebar-open='true'] .admin-shell__sidebar {
+      transform: translateX(0);
+    }
+
+    .admin-shell[data-sidebar-open='true'] .admin-shell__backdrop {
+      display: block;
+      opacity: 1;
+    }
+
+    .admin-shell__backdrop {
+      display: none;
+    }
+
+    .admin-shell__hamburger {
+      display: inline-flex;
+    }
+
+    .admin-shell__content {
+      padding: var(--space-8) var(--space-6);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .admin-shell__topbar {
+      padding: 0 var(--space-4);
+      gap: var(--space-3);
+      height: 60px;
+    }
+
+    .admin-shell__page-title {
+      display: none;
+    }
+
+    .admin-shell__logout {
+      padding: var(--space-2) var(--space-3);
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .admin-shell__content {
+      padding: var(--space-4);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .admin-shell__sidebar,
+    .admin-shell__backdrop {
+      transition: none !important;
+    }
+  }
+</style>

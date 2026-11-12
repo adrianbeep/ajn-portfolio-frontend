@@ -1,0 +1,168 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MarkdownContent from '../../components/MarkdownContent.astro';
+import { listAllContributions, getContribution } from '../../lib/api';
+
+export async function getStaticPaths() {
+  const contributions = await listAllContributions();
+  return contributions.map((c) => ({ params: { slug: c.slug } }));
+}
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/contributions');
+
+const contribution = await getContribution(slug);
+const isInactive = contribution.state === 'Inactive';
+---
+
+<BaseLayout
+  title={`${contribution.title} · AJN Portfolio`}
+  description={contribution.description}
+>
+  <main>
+    <div class="container">
+      <a href="/contributions" class="back-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+        <span>Back to contributions</span>
+      </a>
+
+      <article class="article">
+        <header class="article__header">
+          <p class="article__eyebrow">{isInactive ? 'Contribution · Inactive' : 'Contribution'}</p>
+          <h1 class="article__title">{contribution.title}</h1>
+          <p class="article__lede">{contribution.description}</p>
+          <div class="article__meta">
+            <time datetime={contribution.createdAt}>
+              {new Date(contribution.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </time>
+            {contribution.updatedAt && (
+              <span class="article__meta-sep">·</span>
+            )}
+            {contribution.updatedAt && (
+              <span>Updated {new Date(contribution.updatedAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}</span>
+            )}
+            <span class="article__meta-sep">·</span>
+            <a
+              href={contribution.urlPrContribution}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="article__pr-link"
+            >
+              <span>View contribution</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </header>
+
+        <MarkdownContent content={contribution.content} />
+      </article>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: var(--space-6);
+  }
+  main {
+    padding-block: var(--space-12) var(--space-24);
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-bottom: var(--space-8);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+  .back-link:hover {
+    color: var(--color-fg);
+  }
+
+  .article__pr-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .article {
+    max-width: 48rem;
+    margin-inline: auto;
+  }
+
+  .article__header {
+    margin-bottom: var(--space-12);
+  }
+
+  .article__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+    margin-bottom: var(--space-4);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .article__eyebrow::before {
+    content: '';
+    width: 1.5rem;
+    height: 1px;
+    background: var(--color-accent);
+    display: inline-block;
+  }
+
+  .article__title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: var(--space-4);
+  }
+  .article__lede {
+    font-size: 1.2rem;
+    color: var(--color-muted);
+    line-height: 1.55;
+    margin-bottom: var(--space-6);
+  }
+
+  .article__meta {
+    display: flex;
+    gap: var(--space-2);
+    font-size: 0.875rem;
+    color: var(--color-muted);
+    font-family: var(--font-mono);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .article__pr-link {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+  .article__pr-link:hover {
+    text-decoration: underline;
+  }
+</style>

@@ -1,0 +1,87 @@
+---
+/**
+ * Wrapper presentacional de un tile del bento.
+ *
+ * Variants:
+ *  - default: card normal
+ *  - tall:    card con título más grande (sirve para el "Último proyecto")
+ *  - wide:    card con layout interno de 2 columnas en desktop
+ *
+ * Sin lógica de grid — el `BentoGrid` padre decide el `grid-column` span
+ * por :nth-child. Acá solo styling del tile.
+ */
+
+interface Props {
+  variant?: 'default' | 'tall' | 'wide';
+  /** Tag del contenedor. Default: div. section en la card de contacto. */
+  as?: string;
+  /** ID en el contenedor (lo usa la card de contacto como ancla #contact). */
+  id?: string;
+  /** Clases extra. */
+  class?: string;
+}
+
+const {
+  variant = 'default',
+  as = 'div',
+  id,
+  class: className,
+} = Astro.props;
+
+const Tag = as as keyof HTMLElementTagNameMap;
+---
+
+<Tag
+  id={id}
+  class:list={['bento-card', `bento-card--${variant}`, className]}
+>
+  <slot />
+</Tag>
+
+<style>
+  .bento-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    /* Sin transform en hover: el bento debe sentirse anclado, no flotante.
+       El ProjectCard adentro sí se anima — el contenedor se queda quieto. */
+    transition: border-color var(--duration-fast) var(--ease-out);
+    min-height: 0;
+  }
+
+  .bento-card:hover {
+    border-color: var(--color-fg);
+  }
+
+  /* Las cards que viven dentro de slots pueden ser <a>; el border-color
+     debe animarse también en focus para teclado. */
+  .bento-card:focus-within {
+    border-color: var(--color-fg);
+  }
+
+  /* Tall — min-height mayor y tipografía más grande para la card
+     destacada ("Último proyecto"). */
+  .bento-card--tall {
+    padding: var(--space-8);
+    min-height: 18rem;
+  }
+
+  /* Wide — sub-layout interno de 2 columnas para "Contacto". Apila
+     en mobile para que los iconos no queden apretados. */
+  .bento-card--wide {
+    padding: var(--space-8);
+  }
+
+  @media (min-width: 640px) {
+    .bento-card--wide {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--space-6) var(--space-8);
+      align-items: center;
+    }
+  }
+</style>

@@ -1,0 +1,392 @@
+/**
+ * Editorial dashboard vocabulary — mirrors wireframe #08.
+ *
+ * Used only by src/pages/admin/index.astro. The CRUD pages keep their own
+ * vocabulary in editorial.css.
+ *
+ * Visual rules (from wireframe 08):
+ *   - .editorial-head: stack of eyebrow → huge display title (Fraunces,
+ *     italic on first line) → muted lede → CTA row.
+ *   - .stats / .recent: 2-column grid of border-top blocks (no boxes,
+ *     no border-radius).
+ *   - .stat-block__big: giant italic Fraunces numeral, with the count
+ *     itself drawn upright + accent-coloured via <strong>.
+ *   - .item-block: clickable row with hairline dividers; hover nudges
+ *     left/right by var(--space-2).
+ *   - .badge: small mono pill (success-coloured).
+ *
+ * All values come from src/styles/tokens.css. No new colours, fonts,
+ * spacing or motion are introduced. Status pill colours are hardcoded
+ * with the same color-mix pattern editorial.css uses for .entry__status
+ * because tokens.css has no --success token yet.
+ */
+
+/* ============================================================================
+ * Page wrapper
+ * ========================================================================== */
+
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  /* Fullwidth within the admin main area (the AdminLayout's
+     .admin-shell__content already provides the horizontal padding).
+     Previously this was capped at 80rem which left the right side
+     of the dashboard feeling short of the edge. Matches the same
+     treatment given to .list-page and .form-page. */
+  max-width: none;
+  width: 100%;
+}
+
+/* ============================================================================
+ * Editorial head (eyebrow + display title + lede + CTA row)
+ * ========================================================================== */
+
+.editorial-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+  font-weight: 500;
+  margin: 0;
+}
+
+.editorial-head__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(3rem, 6vw, 5rem);
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  margin: 0;
+  color: var(--color-fg);
+}
+
+.editorial-head__title em {
+  font-style: italic;
+}
+
+.editorial-head__lede {
+  font-size: 1.125rem;
+  color: var(--color-muted);
+  line-height: 1.6;
+  max-width: 36rem;
+  margin: 0;
+}
+
+.editorial-head__row {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+}
+
+/* ============================================================================
+ * CTA pill — primary (fg) and accent variants
+ * ========================================================================== */
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  background-color: var(--color-fg);
+  color: var(--color-bg);
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out),
+              background-color var(--duration-fast) var(--ease-out);
+}
+
+.cta:hover {
+  transform: translateY(-1px);
+}
+
+.cta--accent {
+  background-color: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+ * Stats — two border-top blocks, no boxes
+ * ========================================================================== */
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+}
+
+.stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.stat-block__label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+}
+
+.stat-block__big {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(4rem, 9vw, 6.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  margin: 0;
+  color: var(--color-fg);
+}
+
+.stat-block__big strong {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--color-accent);
+}
+
+.stat-block__sub {
+  font-size: 1rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.stat-block__sub strong {
+  color: var(--color-fg);
+  font-weight: 500;
+}
+
+/* ============================================================================
+ * Recent — two border-top blocks with clickable item rows
+ * ========================================================================== */
+
+.recent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+}
+
+.recent-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.recent-block__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.recent-block__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-style: italic;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--color-fg);
+}
+
+.recent-block__view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.recent-block__view-all:hover {
+  color: var(--color-accent);
+}
+
+/* Empty hint inside a recent-block (when one list is empty but the other isn't) */
+.recent-block__empty-hint {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  font-style: italic;
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  margin: 0;
+  text-align: center;
+}
+
+/* Item row — clickable whole row, hairline dividers, hover nudges L/R */
+.item-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+  transition: padding var(--duration-fast) var(--ease-out);
+}
+
+.item-block:last-child {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.item-block:hover {
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+}
+
+.item-block__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  margin: 0;
+  color: var(--color-fg);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.item-block:hover .item-block__title {
+  color: var(--color-accent);
+}
+
+.item-block__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  flex-wrap: wrap;
+}
+
+.item-block__slug {
+  font-family: var(--font-mono);
+  color: var(--color-fg);
+}
+
+.item-block__sep {
+  opacity: 0.5;
+}
+
+/* ============================================================================
+ * Badge — small mono pill used in item-block meta.
+ * Hardcoded green colour (same pattern editorial.css uses for .entry__status)
+ * because tokens.css has no --success token.
+ * ========================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background-color: color-mix(in oklab, #059669 12%, transparent);
+  color: #059669;
+}
+
+[data-theme='dark'] .badge {
+  background-color: color-mix(in oklab, #34D399 12%, transparent);
+  color: #34D399;
+}
+
+.badge--deleted {
+  background-color: color-mix(in oklab, #DC2626 12%, transparent);
+  color: #DC2626;
+}
+
+[data-theme='dark'] .badge--deleted {
+  background-color: color-mix(in oklab, #F87171 12%, transparent);
+  color: #F87171;
+}
+
+/* ============================================================================
+ * Responsive
+ * ========================================================================== */
+
+@media (max-width: 1023px) {
+  .dashboard-page {
+    gap: var(--space-12);
+  }
+
+  .stats {
+    gap: var(--space-8);
+  }
+
+  .recent {
+    gap: var(--space-8);
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-page {
+    gap: var(--space-8);
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  .recent {
+    grid-template-columns: 1fr;
+  }
+
+  .editorial-head__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ============================================================================
+ * Reduced motion
+ * ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .cta,
+  .cta--accent,
+  .recent-block__view-all,
+  .item-block,
+  .item-block__title {
+    transition: none !important;
+  }
+}

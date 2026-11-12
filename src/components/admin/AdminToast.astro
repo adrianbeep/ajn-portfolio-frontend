@@ -1,0 +1,349 @@
+---
+/**
+ * AdminToast — small notification stack rendered once in the admin shell.
+ *
+ * Three input paths are supported:
+ *
+ *  1. URL query string. After a redirect (e.g. `/admin/projects?toast=created&slug=bar`),
+ *     the script reads the `toast` + `slug` params, renders a matching
+ *     notification, then strips the params from the URL via History API so
+ *     a refresh doesn't replay the toast.
+ *
+ *  2. Custom event. Pages can dispatch
+ *         window.dispatchEvent(new CustomEvent('admin:toast', {
+ *           detail: { variant: 'success'|'error'|'info', title?, message, duration? }
+ *         }));
+ *     Useful for in-place actions like delete/restore that don't redirect.
+ *
+ *  3. Direct call. The exported `bind()` is run on every page-load so the
+ *     global listener survives Astro view transitions.
+ *
+ * Toasts stack vertically (newest on top), animate in from the right
+ * (bottom on mobile), auto-dismiss after 4 s, and have a close button.
+ */
+
+interface Props {
+  /** Position on desktop. Mobile always anchors to bottom. */
+  position?: 'top-right' | 'bottom-right';
+}
+
+const { position = 'top-right' } = Astro.props;
+---
+
+<div
+  id="admin-toasts"
+  class:list={['admin-toasts', `admin-toasts--${position}`]}
+  aria-live="polite"
+  aria-atomic="false"
+>
+</div>
+
+<template id="admin-toast-template">
+  <div class="admin-toast" role="status">
+    <div class="admin-toast__icon" data-toast-icon aria-hidden="true"></div>
+    <div class="admin-toast__body">
+      <p class="admin-toast__title" data-toast-title></p>
+      <p class="admin-toast__message" data-toast-message></p>
+    </div>
+    <button type="button" class="admin-toast__close" data-toast-close aria-label="Cerrar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 6L6 18M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+</template>
+
+<script>
+  // === Toast API ===========================================================
+  //
+  // Public API:
+  //   window.dispatchEvent(new CustomEvent('admin:toast', {
+  //     detail: { variant, title?, message, duration? }
+  //   }));
+  //
+  // Internal defaults:
+  const TOAST_DEFAULT_DURATION = 4000;
+
+  interface ToastDetail {
+    variant: 'success' | 'error' | 'info';
+    title?: string;
+    message: string;
+    duration?: number;
+  }
+
+  // SVG paths used for the icon slot. Kept inline to avoid extra requests.
+  const ICONS = {
+    success:
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>',
+    error:
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+    info: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+  };
+
+  // Mapping for URL-driven toasts. Kept here so the layout shell doesn't
+  // have to know about every redirect site — pages just append the slug.
+  const URL_TOAST_MAP: Record<
+    string,
+    { variant: ToastDetail['variant']; title: string; message?: string; withSlug?: boolean }
+  > = {
+    created:  { variant: 'success', title: 'Proyecto creado', withSlug: true },
+    updated:  { variant: 'success', title: 'Cambios guardados', withSlug: true },
+    deleted:  { variant: 'success', title: 'Proyecto eliminado', withSlug: true },
+    restored: { variant: 'success', title: 'Proyecto restaurado', withSlug: true },
+    notfound: { variant: 'error',   title: 'Proyecto no encontrado', withSlug: true },
+    error:    { variant: 'error',   title: 'Error', message: 'Algo salió mal. Probá de nuevo.' },
+  };
+
+  function showToast(detail: ToastDetail): void {
+    const root = document.getElementById('admin-toasts');
+    const tmpl = document.querySelector<HTMLTemplateElement>('#admin-toast-template');
+    if (!root || !tmpl) return;
+
+    const node = tmpl.content.firstElementChild!.cloneNode(true) as HTMLElement;
+    node.dataset.variant = detail.variant;
+    node.querySelector('[data-toast-icon]')!.innerHTML = ICONS[detail.variant] ?? ICONS.info;
+    node.querySelector('[data-toast-title]')!.textContent = detail.title ?? '';
+    node.querySelector('[data-toast-message]')!.textContent = detail.message;
+
+    // Hide title row if not provided so the layout stays compact.
+    const titleEl = node.querySelector('[data-toast-title]') as HTMLElement;
+    titleEl.hidden = !detail.title;
+
+    const close = (): void => {
+      node.classList.add('admin-toast--leaving');
+      node.addEventListener(
+        'transitionend',
+        () => node.remove(),
+        { once: true },
+      );
+      // Fallback in case transitionend doesn't fire (reduced motion, etc.)
+      setTimeout(() => node.remove(), 400);
+    };
+
+    node.querySelector('[data-toast-close]')!.addEventListener('click', close);
+
+    root.appendChild(node);
+
+    // Force a frame so the entrance transition actually plays.
+    requestAnimationFrame(() => node.classList.add('admin-toast--visible'));
+
+    const duration = detail.duration ?? TOAST_DEFAULT_DURATION;
+    if (duration > 0) {
+      setTimeout(close, duration);
+    }
+  }
+
+  function handleEvent(e: Event): void {
+    const detail = (e as CustomEvent<ToastDetail>).detail;
+    if (detail && typeof detail.message === 'string') {
+      showToast(detail);
+    }
+  }
+
+  function consumeUrlToast(): void {
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('toast');
+    if (!key) return;
+    const mapped = URL_TOAST_MAP[key];
+    if (!mapped) return;
+
+    const slug = params.get('slug');
+    const message = mapped.message
+      ?? (slug
+        ? `${mapped.title}: "${slug}"`
+        : mapped.title);
+
+    showToast({
+      variant: mapped.variant,
+      title: mapped.title,
+      message,
+    });
+
+    // Strip the params so refresh doesn't replay.
+    params.delete('toast');
+    params.delete('slug');
+    const qs = params.toString();
+    const url = window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash;
+    window.history.replaceState({}, '', url);
+  }
+
+  function bind(): void {
+    consumeUrlToast();
+  }
+
+  window.addEventListener('admin:toast', handleEvent);
+  document.addEventListener('astro:page-load', bind);
+  bind();
+</script>
+
+<style>
+  .admin-toasts {
+    position: fixed;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    pointer-events: none;
+    max-width: min(26rem, calc(100vw - 2 * var(--space-4)));
+    padding: var(--space-4);
+  }
+
+  .admin-toasts--top-right {
+    top: 0;
+    right: 0;
+  }
+
+  .admin-toasts--bottom-right {
+    bottom: 0;
+  }
+
+  .admin-toast {
+    pointer-events: auto;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: var(--space-3);
+    align-items: flex-start;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    box-shadow: 0 8px 24px color-mix(in oklab, var(--color-fg) 10%, transparent);
+    color: var(--color-fg);
+    opacity: 0;
+    transform: translateX(20px);
+    transition: opacity var(--duration-base) var(--ease-out),
+                transform var(--duration-base) var(--ease-out);
+  }
+
+  .admin-toast--visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .admin-toast--leaving {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  .admin-toast[data-variant='success'] {
+    border-color: color-mix(in oklab, #10b981 35%, var(--color-border));
+  }
+
+  .admin-toast[data-variant='success'] .admin-toast__icon {
+    color: #047857;
+  }
+
+  :global([data-theme='dark']) .admin-toast[data-variant='success'] .admin-toast__icon {
+    color: #34d399;
+  }
+
+  .admin-toast[data-variant='error'] {
+    border-color: color-mix(in oklab, #ef4444 35%, var(--color-border));
+  }
+
+  .admin-toast[data-variant='error'] .admin-toast__icon {
+    color: #b91c1c;
+  }
+
+  :global([data-theme='dark']) .admin-toast[data-variant='error'] .admin-toast__icon {
+    color: #f87171;
+  }
+
+  .admin-toast[data-variant='info'] .admin-toast__icon {
+    color: var(--color-accent);
+  }
+
+  .admin-toast__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+  }
+
+  .admin-toast__body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .admin-toast__title {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-fg);
+  }
+
+  .admin-toast__title[hidden] {
+    display: none;
+  }
+
+  .admin-toast__message {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    word-wrap: break-word;
+  }
+
+  .admin-toast__close {
+    background: none;
+    border: 0;
+    padding: 0.25rem;
+    margin: -0.25rem -0.25rem 0 0;
+    color: var(--color-muted);
+    cursor: pointer;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .admin-toast__close:hover {
+    color: var(--color-fg);
+    background-color: color-mix(in oklab, var(--color-fg) 6%, transparent);
+  }
+
+  .admin-toast__close:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* On mobile, slide from the bottom and full-width-ish. */
+  @media (max-width: 640px) {
+    .admin-toasts,
+    .admin-toasts--top-right,
+    .admin-toasts--bottom-right {
+      top: auto;
+      right: 0;
+      left: 0;
+      bottom: 0;
+      max-width: none;
+    }
+
+    .admin-toast,
+    .admin-toast--visible,
+    .admin-toast--leaving {
+      transform: translateY(20px);
+    }
+
+    .admin-toast--visible {
+      transform: translateY(0);
+    }
+
+    .admin-toast--leaving {
+      transform: translateY(20px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .admin-toast,
+    .admin-toast--visible,
+    .admin-toast--leaving {
+      transform: none !important;
+    }
+  }
+</style>

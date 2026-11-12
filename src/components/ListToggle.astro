@@ -1,0 +1,55 @@
+---
+interface Props {
+  currentPath: '/projects' | '/contributions';
+}
+
+const { currentPath } = Astro.props;
+---
+
+<nav class="list-toggle" aria-label="Section toggle">
+  <a
+    href="/projects"
+    class:list={['list-toggle__item', { 'is-active': currentPath === '/projects' }]}
+    aria-current={currentPath === '/projects' ? 'page' : undefined}
+  >
+    Projects
+  </a>
+  <a
+    href="/contributions"
+    class:list={['list-toggle__item', { 'is-active': currentPath === '/contributions' }]}
+    aria-current={currentPath === '/contributions' ? 'page' : undefined}
+  >
+    Contributions
+  </a>
+</nav>
+
+<style>
+  .list-toggle {
+    display: inline-flex;
+    gap: 0;
+    padding: var(--space-1);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+
+  .list-toggle__item {
+    padding: var(--space-2) var(--space-4);
+    border-radius: calc(var(--radius) - 0.125rem);
+    color: var(--color-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+  }
+
+  .list-toggle__item:hover {
+    color: var(--color-fg);
+  }
+
+  .list-toggle__item.is-active {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+  }
+</style>

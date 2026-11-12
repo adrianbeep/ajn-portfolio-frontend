@@ -1,0 +1,200 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import EmptyState from '../../components/admin/EmptyState.astro';
+import { listAdminProjects, listAdminContributions } from '../../lib/api';
+import type { ProjectAdminListDto, ContributionAdminListDto } from '../../lib/types';
+import '../../styles/dashboard.css';
+
+// SSR fetches can throw (backend down, 401, network reset, etc.). When that
+// happens we want to render the editorial empty state rather than a 500 —
+// the visual layout must match the wireframe even with no data.
+let projects: ProjectAdminListDto[] = [];
+let contributions: ContributionAdminListDto[] = [];
+
+try {
+  [projects, contributions] = await Promise.all([
+    listAdminProjects({ cookie: Astro.request.headers.get('cookie') ?? '' }),
+    listAdminContributions({ cookie: Astro.request.headers.get('cookie') ?? '' }),
+  ]);
+} catch {
+  // Backend unreachable / not authenticated — fall through with empty lists.
+}
+
+function countBy(items: { deletedAt: string | null }[]) {
+  const total = items.length;
+  const deleted = items.filter((i) => i.deletedAt !== null).length;
+  return { total, active: total - deleted, deleted };
+}
+
+const projectCounts = countBy(projects);
+const contributionCounts = countBy(contributions);
+
+const recentProjects = projects.slice(0, 5);
+const recentContributions = contributions.slice(0, 5);
+const isEmpty = recentProjects.length === 0 && recentContributions.length === 0;
+
+function relativeTime(iso: string): string {
+  const date = new Date(iso).getTime();
+  const now = Date.now();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'recién';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `hace ${diffHours} h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'ayer';
+  if (diffDays < 7) return `hace ${diffDays} días`;
+  if (diffDays < 30) return `hace ${Math.floor(diffDays / 7)} sem`;
+  if (diffDays < 365) return `hace ${Math.floor(diffDays / 30)} meses`;
+  return `hace ${Math.floor(diffDays / 365)} años`;
+}
+
+const breadcrumbs = [{ label: 'Admin' }, { label: 'Dashboard' }];
+
+function projectState(p: ProjectAdminListDto): 'Active' | 'Deleted' {
+  return p.deletedAt ? 'Deleted' : 'Active';
+}
+
+function contributionState(c: ContributionAdminListDto): 'Active' | 'Deleted' {
+  return c.deletedAt ? 'Deleted' : 'Active';
+}
+---
+
+<AdminLayout
+  title="Dashboard"
+  breadcrumbs={breadcrumbs}
+  currentPath="/admin"
+>
+  <article class="dashboard-page">
+    {isEmpty ? (
+      <EmptyState
+        title="Tu portfolio está vacío"
+        description="Empezá creando tu primer proyecto. Después podés agregar contribuciones externas."
+      >
+        <a slot="actions" href="/admin/projects/create" class="cta cta--accent">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Crear el primer proyecto</span>
+        </a>
+      </EmptyState>
+    ) : (
+      <>
+        <header class="editorial-head">
+          <span class="eyebrow">Admin · Dashboard</span>
+          <h1 class="editorial-head__title"><em>Tu portfolio,</em><br />en una mirada.</h1>
+          <p class="editorial-head__lede">Resumen rápido de tu portfolio. Editá, publicá y mantené tu trabajo al día.</p>
+          <div class="editorial-head__row">
+            <a href="/admin/projects/create" class="cta cta--accent">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Nuevo proyecto</span>
+            </a>
+          </div>
+        </header>
+
+        <section class="stats" aria-label="Totales">
+          <div class="stat-block">
+            <span class="stat-block__label">Proyectos</span>
+            <p class="stat-block__big"><strong>{projectCounts.total}</strong> <em>activos</em></p>
+            <p class="stat-block__sub">
+              Total de proyectos en el portfolio.{' '}
+              <strong>{projectCounts.active} activos</strong>{projectCounts.deleted > 0 && (
+                <>, {projectCounts.deleted} eliminados</>
+              )}.
+            </p>
+          </div>
+          <div class="stat-block">
+            <span class="stat-block__label">Contribuciones</span>
+            <p class="stat-block__big"><strong>{contributionCounts.total}</strong> <em>activas</em></p>
+            <p class="stat-block__sub">
+              Total de contribuciones externas.{' '}
+              <strong>{contributionCounts.active} activas</strong>{contributionCounts.deleted > 0 && (
+                <>, {contributionCounts.deleted} eliminadas</>
+              )}.
+            </p>
+          </div>
+        </section>
+
+        <section class="recent" aria-label="Recientes">
+          <div class="recent-block">
+            <div class="recent-block__head">
+              <h2 class="recent-block__title">Proyectos <em>recientes</em></h2>
+              <a href="/admin/projects" class="recent-block__view-all">
+                <span>Ver todo</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </a>
+            </div>
+            {recentProjects.length === 0 ? (
+              <p class="recent-block__empty-hint">Aún no hay proyectos.</p>
+            ) : (
+              recentProjects.map((p) => (
+                <a href={`/admin/projects/${p.slug}`} class="item-block">
+                  <h3 class="item-block__title">{p.title}</h3>
+                  <div class="item-block__meta">
+                    <code class="item-block__slug">/{p.slug}</code>
+                    <span class="item-block__sep" aria-hidden="true">·</span>
+                    {projectState(p) === 'Deleted' ? (
+                      <span class="badge badge--deleted">Eliminado</span>
+                    ) : (
+                      <span class="badge">Activo</span>
+                    )}
+                    <span class="item-block__sep" aria-hidden="true">·</span>
+                    <span>{relativeTime(p.createdAt)}</span>
+                  </div>
+                </a>
+              ))
+            )}
+          </div>
+
+          <div class="recent-block">
+            <div class="recent-block__head">
+              <h2 class="recent-block__title">Contribuciones <em>recientes</em></h2>
+              <a href="/admin/contributions" class="recent-block__view-all">
+                <span>Ver todo</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </a>
+            </div>
+            {recentContributions.length === 0 ? (
+              <p class="recent-block__empty-hint">Aún no hay contribuciones.</p>
+            ) : (
+              recentContributions.map((c) => (
+                <a href={`/admin/contributions/${c.slug}`} class="item-block">
+                  <h3 class="item-block__title">{c.title}</h3>
+                  <div class="item-block__meta">
+                    <code class="item-block__slug">/{c.slug}</code>
+                    <span class="item-block__sep" aria-hidden="true">·</span>
+                    {contributionState(c) === 'Deleted' ? (
+                      <span class="badge badge--deleted">Eliminado</span>
+                    ) : (
+                      <span class="badge">Activo</span>
+                    )}
+                    <span class="item-block__sep" aria-hidden="true">·</span>
+                    <span>{relativeTime(c.createdAt)}</span>
+                  </div>
+                </a>
+              ))
+            )}
+          </div>
+        </section>
+      </>
+    )}
+  </article>
+</AdminLayout>
+
+<style>
+  /* All styling lives in /src/styles/dashboard.css. */
+</style>

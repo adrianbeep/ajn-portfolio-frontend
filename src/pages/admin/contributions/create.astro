@@ -1,0 +1,32 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdminContributionForm from '../../../components/admin/AdminContributionForm';
+import '../../../styles/editorial.css';
+
+const breadcrumbs = [
+  { label: 'Admin', href: '/admin' },
+  { label: 'Contribuciones', href: '/admin/contributions' },
+  { label: 'Nueva' },
+];
+---
+
+<AdminLayout
+  title="Nueva contribución"
+  breadcrumbs={breadcrumbs}
+  currentPath="/admin/contributions"
+>
+  <article class="form-page">
+    <header>
+      <p class="eyebrow">
+        <span class="eyebrow__line" aria-hidden="true"></span>
+        Admin · Contribuciones · Nueva
+      </p>
+      <h1 class="page-title">Nueva <em>contribución</em></h1>
+      <p class="page-lede">Crear una entrada de contribución externa en el portfolio.</p>
+    </header>
+
+    <AdminContributionForm client:load mode="create" />
+  </article>
+</AdminLayout>

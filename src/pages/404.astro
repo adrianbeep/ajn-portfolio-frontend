@@ -1,0 +1,117 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+---
+
+<BaseLayout title="404 · AJN" description="La página que buscás no existe.">
+  <SiteHeader />
+
+  <main id="main">
+    <section class="not-found">
+      <div class="container not-found__inner">
+        <span class="eyebrow not-found__eyebrow">Error 404</span>
+        <h1 class="not-found__title">No se encontró la página</h1>
+        <p class="not-found__lede">
+          El link que seguiste no lleva a ningún lado, o la página fue movida.
+          Esto es lo que podés hacer:
+        </p>
+        <ul class="not-found__actions">
+          <li>
+            <a href="/" class="not-found__action">
+              <span class="not-found__action-label">Volver al inicio</span>
+              <span class="not-found__action-desc">Home con la info principal</span>
+            </a>
+          </li>
+          <li>
+            <a href="/projects" class="not-found__action">
+              <span class="not-found__action-label">Ver proyectos</span>
+              <span class="not-found__action-desc">Lo que vengo construyendo</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href="#contact"
+              class="not-found__action email-link"
+              data-email-user="naumadrianjoaquin"
+              data-email-domain="gmail.com"
+              aria-label="Avisarme del link roto por email"
+            >
+              <span class="not-found__action-label">Avisarme del link roto</span>
+              <span class="not-found__action-desc">Si llegaste desde un link externo, decime y lo arreglo</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <span>&copy; {new Date().getFullYear()} AJN · Hecho con cuidado.</span>
+      <div class="meta"><span>v1.0.0</span></div>
+    </div>
+  </footer>
+</BaseLayout>
+
+<style>
+  .not-found {
+    min-height: calc(100vh - 64px - 80px);
+    display: flex;
+    align-items: center;
+    padding-block: var(--space-24);
+  }
+  .not-found__inner {
+    max-width: 40rem;
+  }
+  .not-found__eyebrow {
+    color: #dc2626;
+  }
+  .not-found__title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: var(--space-3) 0 var(--space-4);
+  }
+  .not-found__lede {
+    color: var(--color-muted);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin: 0 0 var(--space-8);
+  }
+  .not-found__actions {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+  .not-found__action {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+  }
+  .not-found__action:hover {
+    border-color: var(--color-fg);
+    background-color: color-mix(in oklab, var(--color-fg) 4%, transparent);
+  }
+  .not-found__action-label {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--color-fg);
+  }
+  .not-found__action-desc {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+  }
+</style>

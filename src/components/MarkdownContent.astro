@@ -1,0 +1,228 @@
+---
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
+import remarkGfm from 'remark-gfm';
+import remarkRehype from 'remark-rehype';
+import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+import rehypeStringify from 'rehype-stringify';
+import rehypeShiki from '@shikijs/rehype';
+import { rehypeVideoEmbeds } from '../lib/embeds';
+
+interface Props {
+  content: string;
+}
+
+const { content } = Astro.props;
+
+type SanitizeSchema = Parameters<typeof rehypeSanitize>[0];
+
+// Sanitize schema: extend the default so Shiki's inline styles (which carry
+// the --shiki-light / --shiki-dark CSS variables) survive the sanitizer.
+// The default schema strips ALL style attributes — without this, every
+// token would lose its color.
+const sanitizeSchema: SanitizeSchema = {
+  ...defaultSchema,
+  attributes: {
+    ...defaultSchema.attributes,
+    '*': [
+      ...(defaultSchema.attributes?.['*'] ?? []),
+      'className',
+      'style',
+    ],
+    code: [
+      ...(defaultSchema.attributes?.code ?? []),
+      ['className', /^language-/],
+    ],
+  },
+  tagNames: [
+    ...(defaultSchema.tagNames ?? []),
+    'span',
+  ],
+};
+
+const file = await unified()
+  .use(remarkParse)
+  .use(remarkGfm)
+  .use(remarkRehype)
+  .use(rehypeShiki, {
+    themes: {
+      light: 'github-light',
+      dark: 'github-dark',
+    },
+    defaultColor: false, // emit CSS variables so themes switch via [data-theme]
+  })
+  .use(rehypeSanitize, sanitizeSchema)
+  // Auto-embed YouTube/Vimeo links. Runs AFTER sanitize so only the
+  // controlled embed markup survives — user-pasted iframes are already
+  // stripped by the sanitizer.
+  .use(rehypeVideoEmbeds)
+  .use(rehypeStringify)
+  .process(content);
+
+const html = String(file);
+---
+
+<div class="prose" set:html={html} />
+
+<style is:global>
+  /* Prose styles for the rendered markdown. Scoped to .prose via the class
+     selector; is:global because the children are dynamic and we can't use
+     scoped selectors to style them. */
+  .prose {
+    color: var(--color-fg);
+    line-height: 1.7;
+    font-size: 1rem;
+  }
+
+  .prose > * + * {
+    margin-top: var(--space-6);
+  }
+
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .prose h2 {
+    font-size: 1.5rem;
+    margin-top: var(--space-12);
+  }
+
+  .prose h3 {
+    font-size: 1.25rem;
+    margin-top: var(--space-8);
+  }
+
+  .prose p {
+    color: var(--color-fg);
+  }
+
+  .prose a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .prose ul,
+  .prose ol {
+    padding-left: var(--space-6);
+  }
+
+  .prose li + li {
+    margin-top: var(--space-2);
+  }
+
+  .prose code:not(pre code) {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background-color: color-mix(in oklab, var(--color-fg) 8%, transparent);
+    padding: 0.125em 0.375em;
+    border-radius: 0.25rem;
+  }
+
+  .prose pre {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: var(--space-4);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .prose pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+
+  /* Shiki dual-theme switch via [data-theme]. With defaultColor:false Shiki
+     emits inline styles containing --shiki-light / --shiki-dark variables.
+     We forward those into color so light uses one and dark uses the other. */
+  .prose pre span {
+    color: var(--shiki-light, currentColor);
+  }
+
+  [data-theme='dark'] .prose pre span {
+    color: var(--shiki-dark, currentColor);
+  }
+
+  .prose blockquote {
+    border-left: 3px solid var(--color-accent);
+    padding-left: var(--space-4);
+    color: var(--color-muted);
+    font-style: italic;
+  }
+
+  .prose hr {
+    border: 0;
+    border-top: 1px solid var(--color-border);
+    margin-block: var(--space-12);
+  }
+
+  /* Video embeds (YouTube / Vimeo) — wrapper keeps the 16:9 aspect ratio
+     while the iframe scales responsively. Margin matches the rest of the
+     prose blocks (.prose > * + *) so it sits naturally between paragraphs. */
+  .prose .video-embed {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+  }
+
+  .prose .video-embed iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  /* Image embeds (auto-detected URLs ending in .png/.jpg/.gif/etc).
+     Same visual language as the rest of the prose images but with
+     `max-width` so giant images don't blow out the column. */
+  .prose .image-embed {
+    display: block;
+    margin-block: var(--space-4);
+  }
+
+  .prose .image-embed img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+  }
+
+  .prose img {
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+  }
+
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .prose th,
+  .prose td {
+    text-align: left;
+    padding: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .prose th {
+    font-weight: 600;
+  }
+</style>

@@ -1,0 +1,290 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdminModal from '../../../components/admin/AdminModal.astro';
+import EmptyState from '../../../components/admin/EmptyState.astro';
+import { listAdminContributions } from '../../../lib/api';
+import '../../../styles/editorial.css';
+
+const contributions = await listAdminContributions({
+  cookie: Astro.request.headers.get('cookie') ?? '',
+});
+
+const totalCount = contributions.length;
+
+function relativeTime(iso: string): string {
+  const date = new Date(iso).getTime();
+  const now = Date.now();
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'recién';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `hace ${diffHours} h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'ayer';
+  if (diffDays < 7) return `hace ${diffDays} días`;
+  if (diffDays < 30) return `hace ${Math.floor(diffDays / 7)} sem`;
+  if (diffDays < 365) return `hace ${Math.floor(diffDays / 30)} meses`;
+  return `hace ${Math.floor(diffDays / 365)} años`;
+}
+
+const breadcrumbs = [
+  { label: 'Admin', href: '/admin' },
+  { label: 'Contribuciones' },
+];
+---
+
+<AdminLayout
+  title="Contribuciones"
+  breadcrumbs={breadcrumbs}
+  currentPath="/admin/contributions"
+>
+  <article class="list-page">
+    <header>
+      <p class="eyebrow">
+        <span class="eyebrow__line" aria-hidden="true"></span>
+        Admin · Contribuciones
+      </p>
+      <h1 class="page-title">Contribuciones</h1>
+      <p class="page-lede">Gestionar las contribuciones externas (PRs, artículos).</p>
+      <div class="page-actions">
+        <a href="/admin/contributions/create" class="link-cta">
+          <span aria-hidden="true">+</span> Nueva contribución
+        </a>
+      </div>
+    </header>
+
+    {totalCount === 0 ? (
+      <EmptyState
+        title="Sin contribuciones"
+        description="Empezá creando tu primera contribución."
+      >
+        <a slot="actions" href="/admin/contributions/create" class="btn-primary">
+          Crear la primera
+        </a>
+      </EmptyState>
+    ) : (
+      <>
+        <div class="search-bar">
+          <input
+            type="search"
+            class="search-input"
+            placeholder="Buscar por título o slug…"
+            data-list-search
+            aria-label="Buscar contribuciones"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="entries" data-list>
+          {contributions.map((c) => (
+            <article
+              class="entry"
+              data-searchable-title={c.title.toLowerCase()}
+              data-searchable-slug={c.slug.toLowerCase()}
+              data-slug={c.slug}
+              data-title={c.title}
+              data-state={c.deletedAt ? 'Deleted' : 'Active'}
+            >
+              <div class="entry__main">
+                <a href={`/admin/contributions/${c.slug}`} class="entry__title-link">
+                  <h3 class="entry__title">{c.title}</h3>
+                </a>
+                <code class="entry__slug">/{c.slug}</code>
+              </div>
+              <div class="entry__meta">
+                <span class="entry__status" data-state={c.deletedAt ? 'Deleted' : 'Active'}>
+                  {c.deletedAt ? 'Eliminado' : 'Activo'}
+                </span>
+                <time class="entry__time" datetime={c.createdAt}>
+                  {relativeTime(c.createdAt)}
+                </time>
+                <div class="entry__actions">
+                  {c.deletedAt ? (
+                    <button
+                      type="button"
+                      class="entry__action entry__action--restore"
+                      data-action="restore"
+                      data-modal-open="confirm-restore"
+                      aria-label={`Restaurar ${c.title}`}
+                    >
+                      Restaurar
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      class="entry__action entry__action--danger"
+                      data-action="delete"
+                      data-modal-open="confirm-delete"
+                      aria-label={`Eliminar ${c.title}`}
+                    >
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <p class="list-page__no-results" data-list-no-results hidden>
+          Ninguna contribución coincide con la búsqueda.
+        </p>
+      </>
+    )}
+  </article>
+
+  <AdminModal id="confirm-delete" title="¿Eliminar contribución?" variant="danger">
+    <p data-modal-body>
+      Esta acción es reversible desde la papelera.
+    </p>
+    <Fragment slot="actions">
+      <button type="button" class="btn" data-modal-close>Cancelar</button>
+      <button type="button" class="btn btn--danger" data-delete-confirm>Eliminar</button>
+    </Fragment>
+  </AdminModal>
+
+  <AdminModal id="confirm-restore" title="¿Restaurar contribución?" variant="default">
+    <p data-modal-body>
+      La contribución volverá a estar visible en la lista pública.
+    </p>
+    <Fragment slot="actions">
+      <button type="button" class="btn" data-modal-close>Cancelar</button>
+      <button type="button" class="btn btn--primary" data-restore-confirm>Restaurar</button>
+    </Fragment>
+  </AdminModal>
+</AdminLayout>
+
+<script>
+  // === Contributions list client-side controller =============================
+  //
+  // Mirror of /admin/projects. Same patterns, same UX, different endpoint.
+
+  function dispatchToast(variant: 'success' | 'error' | 'info', message: string, title?: string): void {
+    window.dispatchEvent(
+      new CustomEvent('admin:toast', {
+        detail: { variant, message, title: title ?? (variant === 'success' ? 'Listo' : 'Error') },
+      }),
+    );
+  }
+
+  function applySearch(root: HTMLElement, query: string): void {
+    const rows = root.querySelectorAll<HTMLElement>('.entry');
+    const normalizedQuery = query.trim().toLowerCase();
+    let visibleCount = 0;
+    rows.forEach((row) => {
+      const title = row.dataset.searchableTitle ?? '';
+      const slug = row.dataset.searchableSlug ?? '';
+      const matches =
+        normalizedQuery === '' || title.includes(normalizedQuery) || slug.includes(normalizedQuery);
+      row.hidden = !matches;
+      if (matches) visibleCount += 1;
+    });
+    const noResults = document.querySelector<HTMLElement>('[data-list-no-results]');
+    if (noResults) noResults.hidden = visibleCount !== 0;
+  }
+
+  function bindSearch(): void {
+    const input = document.querySelector<HTMLInputElement>('[data-list-search]');
+    const list = document.querySelector<HTMLElement>('[data-list]');
+    if (!input || !list) return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    input.addEventListener('input', () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        applySearch(list, input.value);
+      }, 200);
+    });
+  }
+
+  function bindActions(): void {
+    // Los handlers de body pre-pop y slug-pipe para los botones de
+    // acción (delete/restore) los maneja el AdminModal.astro de forma
+    // delegada sobre `document`. Acá sólo queda el wiring de los botones
+    // de confirmación del modal, que viven en HTML estático dentro de
+    // esta página y se re-bindan en cada astro:page-load.
+
+    const deleteBtn = document.querySelector<HTMLButtonElement>('[data-delete-confirm]');
+    if (deleteBtn && !deleteBtn.dataset.bound) {
+      deleteBtn.dataset.bound = 'true';
+      deleteBtn.addEventListener('click', async () => {
+        const modal = document.getElementById('confirm-delete');
+        const slug = modal?.dataset.slug;
+        if (!slug || !modal) return;
+
+        deleteBtn.disabled = true;
+        const originalLabel = deleteBtn.textContent;
+        deleteBtn.textContent = 'Eliminando…';
+
+        try {
+          const res = await fetch(`/api/admin/contributions/${encodeURIComponent(slug)}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          });
+          if (!res.ok && res.status !== 204) {
+            const problem = await res.json().catch(() => null);
+            throw new Error(problem?.detail ?? problem?.title ?? `HTTP ${res.status}`);
+          }
+          modal.dispatchEvent(new CustomEvent('admin:modal:close'));
+          window.location.assign(`/admin/contributions?toast=deleted&slug=${encodeURIComponent(slug)}`);
+        } catch (err) {
+          console.error('Delete error:', err);
+          deleteBtn.disabled = false;
+          deleteBtn.textContent = originalLabel;
+          const message = err instanceof Error && err.message.includes('HTTP')
+            ? 'No se pudo eliminar. Probá de nuevo.'
+            : 'Error de red. Verificá que el backend esté corriendo.';
+          dispatchToast('error', message, 'Error al eliminar');
+        }
+      });
+    }
+
+    const restoreBtn = document.querySelector<HTMLButtonElement>('[data-restore-confirm]');
+    if (restoreBtn && !restoreBtn.dataset.bound) {
+      restoreBtn.dataset.bound = 'true';
+      restoreBtn.addEventListener('click', async () => {
+        const modal = document.getElementById('confirm-restore');
+        const slug = modal?.dataset.slug;
+        if (!slug || !modal) return;
+
+        restoreBtn.disabled = true;
+        const originalLabel = restoreBtn.textContent;
+        restoreBtn.textContent = 'Restaurando…';
+
+        try {
+          const res = await fetch(`/api/admin/contributions/${encodeURIComponent(slug)}/restore`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+          if (!res.ok) {
+            const problem = await res.json().catch(() => null);
+            throw new Error(problem?.detail ?? problem?.title ?? `HTTP ${res.status}`);
+          }
+          modal.dispatchEvent(new CustomEvent('admin:modal:close'));
+          window.location.assign(`/admin/contributions?toast=restored&slug=${encodeURIComponent(slug)}`);
+        } catch (err) {
+          console.error('Restore error:', err);
+          restoreBtn.disabled = false;
+          restoreBtn.textContent = originalLabel;
+          const message = err instanceof Error && err.message.includes('HTTP')
+            ? 'No se pudo restaurar. Probá de nuevo.'
+            : 'Error de red. Verificá que el backend esté corriendo.';
+          dispatchToast('error', message, 'Error al restaurar');
+        }
+      });
+    }
+  }
+
+  function bindAll(): void {
+    bindSearch();
+    bindActions();
+  }
+
+  bindAll();
+  document.addEventListener('astro:page-load', bindAll);
+</script>

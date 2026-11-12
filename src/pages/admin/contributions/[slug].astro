@@ -1,0 +1,51 @@
+---
+export const prerender = false;
+
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import AdminContributionForm from '../../../components/admin/AdminContributionForm';
+import { getAdminContribution } from '../../../lib/api';
+import { ApiError } from '../../../lib/api-client';
+import '../../../styles/editorial.css';
+
+const { slug } = Astro.params;
+if (!slug) {
+  return Astro.redirect('/admin/contributions');
+}
+
+let contribution;
+try {
+  contribution = await getAdminContribution(slug, {
+    cookie: Astro.request.headers.get('cookie') ?? '',
+  });
+} catch (err) {
+  if (err instanceof ApiError && err.status === 404) {
+    return Astro.redirect('/admin/contributions?toast=notfound&slug=' + encodeURIComponent(slug));
+  }
+  throw err;
+}
+
+const breadcrumbs = [
+  { label: 'Admin', href: '/admin' },
+  { label: 'Contribuciones', href: '/admin/contributions' },
+  { label: `Editar · ${contribution.title}` },
+];
+---
+
+<AdminLayout
+  title={`Editar ${contribution.title}`}
+  breadcrumbs={breadcrumbs}
+  currentPath="/admin/contributions"
+>
+  <article class="form-page">
+    <header>
+      <p class="eyebrow">
+        <span class="eyebrow__line" aria-hidden="true"></span>
+        Admin · Contribuciones · Editar
+      </p>
+      <h1 class="page-title">Editar <em>{contribution.title}</em></h1>
+      <p class="page-lede">Modificar la contribución en el portfolio público.</p>
+    </header>
+
+    <AdminContributionForm client:load mode="edit" initial={contribution} />
+  </article>
+</AdminLayout>
