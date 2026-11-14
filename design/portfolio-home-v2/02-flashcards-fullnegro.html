@@ -69,6 +69,7 @@
   .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; padding: 20px 0 22px; border-top: 1px solid var(--line); margin-top: 26px; }
   .sec-head h2 { font-family: var(--serif); font-weight: 400; font-size: 30px; letter-spacing: -0.015em; margin: 0; }
   .sec-head .count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); letter-spacing: 0.08em; }
+  .sec-note { color: var(--fg-dim); font-size: 13px; margin: -8px 0 18px; font-family: var(--mono); letter-spacing: 0.03em; }
 
   /* flashcards */
   .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
@@ -77,9 +78,13 @@
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
     overflow: hidden; perspective: 1400px; min-height: 330px;
   }
-  /* Giro sin JavaScript: un checkbox invisible por ficha y :has sobre la tarjeta. */
+  /* Giro sin JavaScript: un checkbox invisible por ficha y el selector hermano
+     `~` (no `:has()`), para que funcione también en navegadores sin `:has()`. */
   .flip-toggle { position: absolute; opacity: 0; pointer-events: none; }
-  .card:has(.flip-toggle:checked) .card-inner { transform: rotateY(180deg); }
+  .flip-toggle:checked ~ .card-inner { transform: rotateY(180deg); }
+  .flip-toggle:focus-visible ~ .card-inner .flip-btn {
+    outline: 2px solid var(--accent); outline-offset: 3px;
+  }
   .card-inner {
     position: relative; width: 100%; height: 100%; min-height: 330px;
     transform-style: preserve-3d; transition: transform 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -266,6 +271,10 @@
       <h2 id="h-escrituras">Escrituras</h2>
       <span class="count">2 de 2</span>
     </div>
+    <p class="sec-note">
+      contenido de ejemplo — el seed del backend reutiliza los títulos de los proyectos
+      (GET /contributions)
+    </p>
     <ul class="notes">
       <li><a href="#"><span class="nt">Mi Portfolio</span><span class="nm">2026-01-01</span></a></li>
       <li><a href="#"><span class="nt">API de Gestión</span><span class="nm">2026-02-01</span></a></li>
