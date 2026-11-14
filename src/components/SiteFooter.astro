@@ -1,0 +1,28 @@
+---
+import { navigation, site, socialLinks } from "../lib/site";
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__grid">
+    <div>
+      <p class="site-footer__mark">{site.name}<span class="brand__accent">.</span></p>
+      <p class="site-footer__statement">{site.statement}</p>
+    </div>
+    <nav class="site-footer__nav" aria-label="Del sitio">
+      <h2 class="site-footer__title">Del sitio</h2>
+      <ul>
+        {navigation.map((item) => <li><a href={item.href}>{item.label}</a></li>)}
+      </ul>
+    </nav>
+    <nav class="site-footer__nav" aria-label="Contacto y redes">
+      <h2 class="site-footer__title">En la web</h2>
+      <ul>
+        {socialLinks.map((item) => <li><a href={item.href}>{item.label}</a></li>)}
+      </ul>
+    </nav>
+  </div>
+  <div class="container site-footer__bottom">
+    <span>© {new Date().getFullYear()} {site.name}</span>
+    <span>Sitio estático con Astro · 0 kb de JavaScript por defecto</span>
+  </div>
+</footer>

@@ -1,5 +1,8 @@
-// Verbatim from docs/api-contract.md §11 (TypeScript helpers).
-// Do NOT rename or restructure — the backend contract is the source of truth.
+/**
+ * Tipos del contrato con la API.
+ * Origen: ../ajn-portfolio-backend/docs/api-contract.md (sección 8 y 11).
+ * No redeclarar: si cambia el contrato, se actualiza acá.
+ */
 
 export type Guid = string;
 export type ISODateTime = string;
@@ -42,101 +45,7 @@ export interface ProjectDetailDto {
 
 export type ProjectListDto = PagedList<ProjectSummaryDto>;
 
-export interface ProjectAdminListDto {
-  id: Guid;
-  slug: string;
-  title: string;
-  createdAt: ISODateTime;
-  deletedAt: ISODateTime | null;
-}
-
-export interface CreateProjectRequest {
-  title: string;
-  slug: string;
-  urlThumbnail: string;
-  description: string;
-  content: string;
-}
-
-export interface UpdateProjectRequest {
-  id: Guid;
-  title: string;
-  slug: string;
-  urlThumbnail: string;
-  description: string;
-  content: string;
-}
-
-export interface ContributionSummaryDto {
-  id: Guid;
-  slug: string;
-  title: string;
-  urlThumbnail: string;
-  urlPrContribution: string;
-  description: string;
-}
-
-export interface ContributionDetailDto {
-  id: Guid;
-  title: string;
-  slug: string;
-  urlThumbnail: string;
-  urlPrContribution: string;
-  description: string;
-  content: string;
-  state: State;
-  createdAt: ISODateTime;
-  updatedAt: ISODateTime | null;
-}
-
-export type ContributionListDto = PagedList<ContributionSummaryDto>;
-
-export interface ContributionAdminListDto {
-  id: Guid;
-  slug: string;
-  title: string;
-  createdAt: ISODateTime;
-  deletedAt: ISODateTime | null;
-}
-
-export interface CreateContributionRequest {
-  title: string;
-  slug: string;
-  urlThumbnail: string;
-  urlPrContribution: string;
-  description: string;
-  content: string;
-}
-
-export interface UpdateContributionRequest {
-  id: Guid;
-  title: string;
-  slug: string;
-  urlThumbnail: string;
-  urlPrContribution: string;
-  description: string;
-  content: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  expiresAt: ISODateTime;
-}
-
-export interface LogoutResponse {
-  message: string;
-}
-
-export interface CreatedResponse {
-  id: Guid;
+/** Una tarjeta de proyecto con el detalle ya resuelto (build time). */
+export interface ProjectWithDetail extends ProjectDetailDto {
+  summary: ProjectSummaryDto;
 }

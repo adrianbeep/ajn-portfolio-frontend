@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://adrianbeep.dev/sitemap.xml
