@@ -1,6 +1,4 @@
-# ---------------------------------------------------------------------------
 # Dependencies
-# ---------------------------------------------------------------------------
 node_modules/
 .pnp
 .pnp.js
@@ -10,12 +8,9 @@ node_modules/
 !.yarn/plugins
 !.yarn/versions
 !.yarn/sdks
-!.yarn/versions
 .install-state.gz
 
-# ---------------------------------------------------------------------------
 # Build output
-# ---------------------------------------------------------------------------
 dist/
 build/
 .output/
@@ -29,9 +24,7 @@ astro.config.mjs.timestamp-*
 vite.config.*.timestamp-*
 *.tsbuildinfo
 
-# ---------------------------------------------------------------------------
 # Environment variables
-# ---------------------------------------------------------------------------
 .env
 .env.*
 !.env.example
@@ -40,43 +33,15 @@ vite.config.*.timestamp-*
 .env.test.local
 .env.production.local
 
-# ---------------------------------------------------------------------------
 # Logs
-# ---------------------------------------------------------------------------
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
-# ---------------------------------------------------------------------------
-# Testing / coverage
-# ---------------------------------------------------------------------------
-coverage/
-*.lcov
-.nyc_output/
-test-results/
-playwright-report/
-blob-report/
-playwright/.cache/
-/test-results/
-
-# ---------------------------------------------------------------------------
-# Cache
-# ---------------------------------------------------------------------------
-.cache/
-.parcel-cache/
-.turbo/
-.swc/
-.eslintcache
-.stylelintcache
-.prettiercache
-
-# ---------------------------------------------------------------------------
 # Editors / OS
-# ---------------------------------------------------------------------------
 .DS_Store
 Thumbs.db
 .idea/
@@ -85,23 +50,18 @@ Thumbs.db
 !.vscode/settings.json
 !.vscode/launch.json
 !.vscode/tasks.json
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
-# ---------------------------------------------------------------------------
-# Local scratch (personal machine paths, wireframe exports)
-# ---------------------------------------------------------------------------
+# Test / coverage output
+coverage/
+*.lcov
+test-results/
+playwright-report/
+
+# Local scratch
 /screenshots/
 /wireframes/
-/aj-wireframes/
 *.local
 
-# ---------------------------------------------------------------------------
-# Misc
-# ---------------------------------------------------------------------------
+# Secrets
 *.pem
 *.key
-!.github/*.key
