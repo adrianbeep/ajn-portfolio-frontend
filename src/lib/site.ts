@@ -24,9 +24,9 @@ export const navigation: SiteLink[] = [
 ];
 
 export const socialLinks: SiteLink[] = [
-  { label: "GitHub", href: "#" },
-  { label: "LinkedIn", href: "#" },
-  { label: "Email", href: "#" },
+  { label: "GitHub", href: "https://github.com/adrianbeep" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/naumadrian/" },
+  { label: "Email", href: "mailto:naumadrianjoaquin@gmail.com" },
 ];
 
 export interface AboutFact {
