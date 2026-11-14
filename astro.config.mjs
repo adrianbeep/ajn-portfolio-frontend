@@ -7,6 +7,7 @@ import react from '@astrojs/react';
 // time; React is mounted only where real interactivity is required.
 export default defineConfig({
   output: 'static',
+  site: 'https://ajn-portfolio.vercel.app',
   adapter: vercel(),
   integrations: [
     // Scope React ONLY to .tsx files. Astro 7's built-in JSX renderer would
