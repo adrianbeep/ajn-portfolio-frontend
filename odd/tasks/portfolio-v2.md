@@ -13,6 +13,11 @@ Reconstrucción total del frontend del portfolio: repo limpio, especificaciones 
 - **S7** — Contrato de API: `docs/api-contract.md` es el contrato con el backend .NET 10 y **no existe en `../ajn-portfolio-backend/docs/`**. Hay que decidir su destino antes de borrar (ver Log 2026-11-14) para no perder 657 líneas de conocimiento destilado.
 - **S8** — Markdown: `content` llega como markdown crudo desde el backend y **el sanitizado es responsabilidad del frontend** (`rehype-sanitize`), con Shiki dual-theme (`github-light`/`github-dark`) preservando las variables `--shiki-light`/`--shiki-dark`.
 - **S9** — El sitio público es **estático y sin JS por defecto**: React solo se monta donde hay interactividad real; el contenido se trae del backend en build time vía `PUBLIC_API_BASE_URL`.
+- **S10** — "el HERO deberia ocupar el primer pantallazo" → El hero ocupa la primera pantalla completa (`100svh` menos el header) y es el único bloque en ese rango; el contenido arranca después.
+- **S11** — "quiero que las flashcards esten presentadas con flex por fila (1 por fila) centrada" → Las fichas de proyecto se apilan en `flex-direction: column`, **una por fila**, centradas, con ancho máximo ~720px; dentro de la ficha, miniatura a la izquierda y contenido a la derecha (horizontal).
+- **S12** — "abajo del hero iria un Sobre mi donde detallo mas" → Sección **"Sobre mí"** propia, narrativa, debajo del hero: relato en dos columnas (texto + tres hechos en foco), sin datos inventados.
+- **S13** — "tiene que haber una seccion de tecnologias donde liste mi stack tecnologico" → Sección **"Tecnologías"** propia, separada de "Sobre mí" (narrativa vs. referencia escaneable), con chips agrupados por categoría (Frontend, Backend, Datos, Infraestructura).
+- **S14** — Orden de secciones de la home: **Hero → Sobre mí → Proyectos → Tecnologías → Escrituras**. Los proyectos son la evidencia y preceden al stack; el stack es respaldo.
 
 ## Tasks
 
@@ -26,12 +31,15 @@ Reconstrucción total del frontend del portfolio: repo limpio, especificaciones 
 | T6 | S6 | Elegir dirección y congelar tokens/tipografía/grid/motion | — |
 | T7 | S3, S9 | Capa de datos: tipos + cliente API + fetch de build time | — |
 | T8 | S3, S8 | Layout base, header, footer, tema claro/oscuro | — |
-| T9 | S5 | Home: hero + proyectos recientes | — |
+| T9 | S5, S10, S14 | Home: hero a pantalla completa + proyectos recientes | — |
 | T10 | S5 | Listado paginado de projects + detail | — |
 | T11 | S5 | Listado paginado de contributions + detail | — |
 | T12 | S8 | Render de markdown sanitizado + Shiki dual-theme | — |
 | T13 | S5 | 404 + SEO (metadatos, OG, sitemap, robots) | — |
 | T14 | S3, S9 | Build verde + `astro check` sin errores | — |
+| T15 | S11 | Flashcards de proyecto: 1 por fila, centradas, layout horizontal | — |
+| T16 | S12 | Sección "Sobre mí" (home) | — |
+| T17 | S13 | Sección "Tecnologías" (home + detalle de proyecto) | — |
 
 ## Log
 
@@ -40,4 +48,5 @@ Reconstrucción total del frontend del portfolio: repo limpio, especificaciones 
 - **2026-11-14 (decisiones del usuario)** — "Borrar absolutamente todo" / stack: "lo mismo que usabamos pero css vanilla? astro no viene con tailwind?" / alcance: "Sitio público primero" / visual: "Explorar direcciones nuevas".
 - **2026-11-14 (diseño)** — Direcciones visuales en `design/portfolio-home-v2/`: `01-editorial-index.html` (Índice editorial), `02-flashcards-fullnegro.html` (Full negro + lista de flashcards) y `03-estudio-bento.html` (Estudio bento). Las tres son alternativas; la elegida pasa a ser la fuente de tokens de `src/styles/`.
 - **2026-11-14 (iteración de diseño, pedido del usuario)** — "quiero que el de consola no sea consola, me gusta el fullnegro ... los proyectos los listas como lista ... para mi tendría que ser lista de flashcards, si te fijas el api del backend te los lista para que puedas hacer un flashcard del proyecto". La dirección 02 (`02-consola-sistema.html`) se transformó en `02-flashcards-fullnegro.html`: negro pleno, sin estética de terminal, y los proyectos pasan a ser fichas con frente/dorso. **El artboard es un mock estático con registros hardcodeados** copiados del seed del backend ("Mi Portfolio", "API de Gestión"); la integración real con `GET /projects` + `GET /projects/{slug}` es un paso de implementación posterior (T7, T9-T11), no algo que el artboard ya ejecute. El giro de la ficha debe resolverse sin JavaScript en el sitio público.
+- **2026-11-14 (iteración de diseño 2, pedido del usuario)** — "quiero que las flashcards esten presentadas con flex por fila (1 por fila) centrada, aparte tiene que haber una seccion de tecnologias donde liste mi stack tecnologico. no se si abajo de la seccion de proyectos o arriba. aparte el HERO deberia ocupar el primer pantallazo, abajo del hero iria un Sobre mi donde detallo mas y muestro tecnologias o deberian ser dos cosas aparte?" Decisiones tomadas (el usuario canceló la questionnaire y delegó el criterio): flashcards en flex, una por fila, centradas, con layout horizontal dentro de la ficha; "Sobre mí" y "Tecnologías" son **dos secciones separadas** (narrativa vs. referencia escaneable); hero a pantalla completa; orden final **Hero → Sobre mí → Proyectos → Tecnologías → Escrituras**. Specs S10-S14, tareas T15-T17.
 - **2026-11-14 (hallazgo que corrige una premisa)** — Mi opción de la pregunta ofrecía copiar el contrato desde `../ajn-portfolio-backend/docs/`; **ese archivo no existe ahí** (el backend tiene `2026-08-03.md`, `adr/`, `architecture/`, `backlog-deuda-tecnica.md`, `diagrams/`, `roadmap-implementacion.md`). El contrato de 657 líneas solo vive en este repo → decisión pendiente en T2 antes de borrar.
