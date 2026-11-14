@@ -1,6 +1,6 @@
 {
   "title": "Portfolio v2 — Home",
-  "brief": "Home del portfolio personal (backend .NET + frontend estático). Audiencia: reclutadores y pares técnicos. Trabajo principal: entender qué hace la persona y llegar a un proyecto. Contenido real disponible: API de Gestión, Portfolio, Portfolio v2 (en curso) y dos notas. Se exploran tres direcciones visuales distintas —índice editorial, consola/sistema y estudio bento— antes de congelar tokens y componentes.",
+  "brief": "Home del portfolio personal (backend .NET + frontend estático). Audiencia: reclutadores y pares técnicos. Trabajo principal: entender qué hace la persona y llegar a un proyecto. Contenido real disponible: API de Gestión y Mi Portfolio (del seed del backend). Estructura: hero a pantalla completa, Sobre mí, Proyectos (tarjetas con imagen arriba y texto abajo, una por fila, centradas), Tecnologías. Sin blog, sin sección de escrituras. Se exploran tres direcciones visuales distintas —índice editorial, consola/sistema y estudio bento— antes de congelar tokens y componentes.",
   "feature": "odd/tasks/portfolio-v2.md",
   "artboards": [
     {
@@ -13,7 +13,7 @@
     {
       "file": "02-fullnegro-tarjetas.html",
       "title": "Full negro + tarjetas de proyecto",
-      "tradeoff": "Negro pleno, serif de titular y proyectos como tarjetas con imagen arriba y texto abajo (referencia del usuario), apiladas una por fila y centradas. Estructura de la home: hero a pantalla completa, Sobre mí, Proyectos, Tecnologías y Escrituras. Deja de lado la estética de terminal y cualquier interacción en la tarjeta; a cambio la miniatura es el único elemento visual (hoy es un placeholder, no hay imágenes reales del backend).",
+      "tradeoff": "Negro pleno, serif de titular y proyectos como tarjetas con imagen arriba y texto abajo (referencia del usuario), apiladas una por fila y centradas. Estructura de la home: hero a pantalla completa, Sobre mí, Proyectos y Tecnologías (sin blog). Deja de lado la estética de terminal y cualquier interacción en la tarjeta; a cambio la miniatura es el único elemento visual (hoy es un placeholder, no hay imágenes reales del backend).",
       "width": 1440,
       "height": 900
     },
