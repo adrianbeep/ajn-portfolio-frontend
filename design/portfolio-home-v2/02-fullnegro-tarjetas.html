@@ -135,8 +135,23 @@
   .card .meta .more { color: var(--accent); font-weight: 600; }
 
   /* ---------- footer ---------- */
-  footer { margin-top: 88px; border-top: 1px solid var(--line); padding: 26px 0 56px; color: var(--fg-dim); font-size: 14px; }
-  footer .bar { color: inherit; }
+  .site-footer { margin-top: 96px; border-top: 1px solid var(--line); padding: 56px 0 40px; color: var(--fg-dim); }
+  .footer-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)); gap: 40px; }
+  .footer-mark { font-family: var(--serif); font-size: 24px; font-weight: 700; color: var(--fg); margin: 0 0 10px; }
+  .footer-mark span { color: var(--accent); }
+  .footer-statement { margin: 0; max-width: 34ch; font-size: 15px; }
+  .footer-title {
+    font-family: var(--mono); font-size: 11px; font-weight: 400;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-dim); margin: 0 0 14px;
+  }
+  .footer-nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .footer-nav a { color: var(--fg); text-decoration: none; font-size: 15px; transition: color 140ms ease; }
+  .footer-nav a:hover { color: var(--accent); }
+  .footer-bottom {
+    display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between;
+    margin-top: 44px; padding-top: 20px; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
@@ -144,6 +159,7 @@
   @media (max-width: 860px) {
     .about { grid-template-columns: 1fr; gap: 32px; }
     .stack-row { grid-template-columns: 1fr; gap: 10px; }
+    .footer-grid { grid-template-columns: 1fr; gap: 28px; }
   }
   @media (max-width: 620px) {
     .wrap { padding: 0 20px; }
@@ -314,10 +330,34 @@
   </div>
 </main>
 
-<footer class="wrap">
-  <div class="bar">
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div class="footer-brand">
+      <p class="footer-mark">AJN<span>.</span></p>
+      <p class="footer-statement">
+        Backend .NET, APIs REST y frontends estáticos. Construyo software que se sostiene en pie.
+      </p>
+    </div>
+    <nav class="footer-nav" aria-label="Del sitio">
+      <h2 class="footer-title">Del sitio</h2>
+      <ul>
+        <li><a href="#sobre-mi">Sobre mí</a></li>
+        <li><a href="#proyectos">Proyectos</a></li>
+        <li><a href="#tecnologias">Tecnologías</a></li>
+      </ul>
+    </nav>
+    <nav class="footer-nav" aria-label="Contacto y redes">
+      <h2 class="footer-title">En la web</h2>
+      <ul>
+        <li><a href="#">GitHub</a></li>
+        <li><a href="#">LinkedIn</a></li>
+        <li><a href="#">Email</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="wrap footer-bottom">
     <span>© 2026 AJN</span>
-    <span>GitHub · LinkedIn · RSS</span>
+    <span>Sitio estático con Astro · 0 kb de JavaScript por defecto</span>
   </div>
 </footer>
 </body>
