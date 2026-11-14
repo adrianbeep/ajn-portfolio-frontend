@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>02 — Lista de flashcards (full negro) · AJN Portfolio</title>
+<style>
+  :root {
+    --bg: #000000;
+    --surface: #0D0D0D;
+    --surface-2: #151515;
+    --line: #232323;
+    --fg: #F5F5F4;
+    --fg-dim: #9A9A96;
+    --accent: #FF6A3D;
+    --radius: 14px;
+    --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+    --serif: Georgia, 'Times New Roman', ui-serif, serif;
+    --mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px;
+  }
+  .skip { position: absolute; left: -9999px; }
+  .skip:focus { left: 12px; top: 12px; background: var(--accent); color: #000; padding: 8px 14px; border-radius: 8px; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+
+  /* header */
+  header.site { padding: 30px 0 8px; }
+  .bar { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .brand { text-decoration: none; font-family: var(--serif); font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand span { color: var(--accent); }
+  nav.main { display: flex; gap: 28px; }
+  nav.main a {
+    color: var(--fg-dim); text-decoration: none; font-size: 15px;
+    transition: color 140ms ease;
+  }
+  nav.main a:hover { color: var(--fg); }
+
+  /* hero */
+  .hero { padding: 72px 0 56px; }
+  .kicker {
+    display: inline-block; font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin: 0 0 22px;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 400; font-size: clamp(38px, 5.2vw, 66px);
+    line-height: 1.06; letter-spacing: -0.022em; margin: 0 0 22px; max-width: 18ch;
+  }
+  .lede { color: var(--fg-dim); font-size: 18px; max-width: 58ch; margin: 0 0 30px; }
+  .hint { color: var(--fg-dim); font-size: 14px; display: flex; align-items: center; gap: 10px; }
+  .hint .key {
+    font-family: var(--mono); font-size: 12px; border: 1px solid var(--line);
+    border-radius: 999px; padding: 3px 10px; color: var(--fg);
+  }
+
+  /* section head */
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; padding: 20px 0 22px; border-top: 1px solid var(--line); margin-top: 26px; }
+  .sec-head h2 { font-family: var(--serif); font-weight: 400; font-size: 30px; letter-spacing: -0.015em; margin: 0; }
+  .sec-head .count { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); letter-spacing: 0.08em; }
+
+  /* flashcards */
+  .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; perspective: 1400px; min-height: 330px;
+  }
+  .card-inner {
+    position: relative; width: 100%; height: 100%; min-height: 330px;
+    transform-style: preserve-3d; transition: transform 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .card.flipped .card-inner { transform: rotateY(180deg); }
+  .face {
+    position: absolute; inset: 0; backface-visibility: hidden;
+    border-radius: var(--radius); display: flex; flex-direction: column;
+    padding: 22px; gap: 14px;
+  }
+  .face-back { transform: rotateY(180deg); background: var(--surface-2); border: 1px solid var(--line); }
+
+  .thumb {
+    aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--line);
+    background: linear-gradient(135deg, #171717, #0A0A0A);
+    display: grid; place-items: center; color: var(--fg-dim);
+    font-family: var(--serif); font-size: 34px; letter-spacing: -0.02em;
+  }
+  .thumb .badge {
+    position: absolute; top: 32px; left: 32px; font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--fg); background: rgba(255,255,255,0.06); border: 1px solid var(--line);
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .card h3 { margin: 0; font-size: 21px; letter-spacing: -0.012em; }
+  .card .desc { margin: 0; color: var(--fg-dim); font-size: 15px; }
+  .card .foot {
+    margin-top: auto; display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; font-family: var(--mono); font-size: 12px; color: var(--fg-dim);
+    letter-spacing: 0.04em;
+  }
+  .flip-btn {
+    font-family: var(--sans); font-size: 14px; color: var(--fg); text-decoration: none;
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px;
+    background: transparent; cursor: pointer; transition: border-color 140ms ease, color 140ms ease;
+  }
+  .flip-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .card.flipped .flip-btn { visibility: hidden; }
+
+  .back-body { color: var(--fg-dim); font-size: 15px; margin: 0; }
+  .back-body strong { color: var(--fg); font-weight: 600; }
+  .meta-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .meta-list li { display: flex; justify-content: space-between; gap: 16px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; }
+  .meta-list .k { color: var(--fg-dim); }
+  .meta-list .v { color: var(--fg); }
+  .more { margin-top: auto; font-size: 15px; color: var(--accent); text-decoration: none; font-weight: 600; }
+
+  /* contributions */
+  .notes { list-style: none; margin: 0; padding: 0; }
+  .notes li { border-bottom: 1px solid var(--line); }
+  .notes a {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 24px;
+    padding: 18px 2px; text-decoration: none;
+  }
+  .notes a:hover .nt { color: var(--accent); }
+  .notes .nt { font-size: 19px; letter-spacing: -0.01em; transition: color 140ms ease; }
+  .notes .nm { font-family: var(--mono); font-size: 12px; color: var(--fg-dim); white-space: nowrap; }
+
+  footer { margin-top: 72px; border-top: 1px solid var(--line); padding: 26px 0 56px; color: var(--fg-dim); font-size: 14px; }
+  footer .bar { color: inherit; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+  @media (max-width: 860px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 620px) {
+    .wrap { padding: 0 20px; }
+    nav.main { gap: 18px; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Ir al contenido</a>
+
+<header class="site wrap">
+  <div class="bar">
+    <a class="brand" href="#">AJN<span>.</span></a>
+    <nav class="main" aria-label="Principal">
+      <a href="#proyectos">Proyectos</a>
+      <a href="#escrituras">Escrituras</a>
+      <a href="#">Contacto</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <section class="hero">
+    <p class="kicker">Ingeniero de software</p>
+    <h1>Construyo software que se sostiene en pie.</h1>
+    <p class="lede">
+      Backend .NET, APIs REST y frontends estáticos. Cada proyecto es una ficha:
+      tocá la tarjeta para dar vuelta y ver el detalle.
+    </p>
+    <p class="hint"><span class="key">girar</span> las tarjetas para ver el detalle de cada proyecto</p>
+  </section>
+
+  <section id="proyectos" aria-labelledby="h-proyectos">
+    <div class="sec-head">
+      <h2 id="h-proyectos">Proyectos</h2>
+      <span class="count">2 de 2</span>
+    </div>
+
+    <div class="cards">
+      <!-- frente -->
+      <article class="card">
+        <div class="card-inner">
+          <div class="face">
+            <div class="thumb">
+              <span class="badge">.NET</span>
+              <span>API</span>
+            </div>
+            <h3>API de Gestión</h3>
+            <p class="desc">API REST para gestión de proyectos.</p>
+            <div class="foot">
+              <span>2026-02-01 · activo</span>
+              <button class="flip-btn" type="button">Girar</button>
+            </div>
+          </div>
+          <div class="face face-back">
+            <h3>API de Gestión</h3>
+            <p class="back-body">
+              <strong>Qué es.</strong> API REST para gestión de proyectos y contribuciones.
+              Clean Architecture, EF Core sobre SQLite y autenticación por cookie httpOnly.
+            </p>
+            <ul class="meta-list">
+              <li><span class="k">slug</span><span class="v">/api-gestion</span></li>
+              <li><span class="k">contenido</span><span class="v">markdown</span></li>
+              <li><span class="k">actualizado</span><span class="v">2026-02-01</span></li>
+            </ul>
+            <a class="more" href="#">Ver el proyecto →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- dorso visible (estado girado) -->
+      <article class="card flipped">
+        <div class="card-inner">
+          <div class="face">
+            <div class="thumb">
+              <span class="badge">Astro</span>
+              <span>WEB</span>
+            </div>
+            <h3>Mi Portfolio</h3>
+            <p class="desc">Sitio web de portfolio personal.</p>
+            <div class="foot">
+              <span>2026-01-01 · activo</span>
+              <button class="flip-btn" type="button">Girar</button>
+            </div>
+          </div>
+          <div class="face face-back">
+            <h3>Mi Portfolio</h3>
+            <p class="back-body">
+              <strong>Qué es.</strong> Sitio de portfolio personal con panel editorial:
+              contenido en markdown, sanitizado en el frontend y publicado en build.
+            </p>
+            <ul class="meta-list">
+              <li><span class="k">slug</span><span class="v">/mi-portfolio</span></li>
+              <li><span class="k">contenido</span><span class="v">markdown</span></li>
+              <li><span class="k">actualizado</span><span class="v">2026-01-01</span></li>
+            </ul>
+            <a class="more" href="#">Ver el proyecto →</a>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="escrituras" aria-labelledby="h-escrituras">
+    <div class="sec-head">
+      <h2 id="h-escrituras">Escrituras</h2>
+      <span class="count">2 de 2</span>
+    </div>
+    <ul class="notes">
+      <li><a href="#"><span class="nt">Mi Portfolio</span><span class="nm">2026-01-01</span></a></li>
+      <li><a href="#"><span class="nt">API de Gestión</span><span class="nm">2026-02-01</span></a></li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap">
+  <div class="bar">
+    <span>© 2026 AJN</span>
+    <span>GitHub · LinkedIn · RSS</span>
+  </div>
+</footer>
+
+<script>
+  // Mock de interacción: en producción el giro se resuelve con CSS puro
+  // (:has + checkbox) para no pagar JavaScript en el sitio público.
+  document.querySelectorAll('.flip-btn').forEach((btn) => {
+    btn.addEventListener('click', () => btn.closest('.card').classList.toggle('flipped'));
+  });
+</script>
+</body>
+</html>
