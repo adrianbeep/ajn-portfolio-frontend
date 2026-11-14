@@ -1,0 +1,14 @@
+---
+import ThemeToggle from "./ThemeToggle.astro";
+import { navigation, site } from "../lib/site";
+---
+
+<header class="site-header">
+  <div class="container site-header__bar">
+    <a class="brand" href="/">{site.name}<span class="brand__accent">.</span></a>
+    <nav class="site-nav" aria-label="Principal">
+      {navigation.map((item) => <a href={item.href}>{item.label}</a>)}
+      <ThemeToggle />
+    </nav>
+  </div>
+</header>

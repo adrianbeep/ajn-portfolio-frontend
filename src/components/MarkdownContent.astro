@@ -1,0 +1,10 @@
+---
+interface Props {
+  /** HTML ya sanitizado por src/lib/markdown.ts. */
+  html: string;
+}
+
+const { html } = Astro.props;
+---
+
+<div class="prose" set:html={html} />

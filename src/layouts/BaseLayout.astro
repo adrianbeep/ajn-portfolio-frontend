@@ -1,0 +1,68 @@
+---
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import { site } from "../lib/site";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import "../styles/components.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Ruta canónica del sitio (ej. "/projects/mi-portfolio"). */
+  path?: string;
+  noindex?: boolean;
+}
+
+const {
+  title = `${site.name} — ${site.tagline}`,
+  description = site.description,
+  path = Astro.url.pathname,
+  noindex = false,
+} = Astro.props;
+
+const canonical = new URL(path, Astro.site ?? "https://ajn-portfolio.vercel.app");
+---
+
+<!doctype html>
+<html lang="es" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical.pathname} />
+    {noindex && <meta name="robots" content="noindex" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical.pathname} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap.xml" />
+
+    <script is:inline>
+      // Se resuelve antes del primer pintado para que el tema no parpadee.
+      (() => {
+        const root = document.documentElement;
+        try {
+          const stored = localStorage.getItem("theme");
+          const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+          root.dataset.theme = stored ?? (prefersLight ? "light" : "dark");
+        } catch {
+          root.dataset.theme = "dark";
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Ir al contenido</a>
+    <SiteHeader />
+    <main id="main">
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

@@ -1,0 +1,43 @@
+---
+import type { ProjectWithDetail } from "../lib/types";
+
+interface Props {
+  project: ProjectWithDetail;
+}
+
+const { project } = Astro.props;
+
+const year = new Date(project.createdAt).getUTCFullYear();
+const monogram = project.title
+  .split(/\s+/)
+  .filter((word) => word.length > 0)
+  .slice(0, 2)
+  .map((word) => word[0]?.toUpperCase() ?? "")
+  .join("");
+---
+
+<a class="card" href={`/projects/${project.slug}/`}>
+  <span class="card__cover">
+    {
+      project.urlThumbnail && (
+        <img
+          class="card__cover-image"
+          src={project.urlThumbnail}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onerror="this.remove()"
+        />
+      )
+    }
+    <span aria-hidden="true">{monogram}</span>
+  </span>
+  <span class="card__body">
+    <h3 class="card__title">{project.title}</h3>
+    <p class="card__description">{project.description}</p>
+    <span class="card__meta">
+      <span>{year} · {project.state}</span>
+      <span class="card__more">Ver proyecto</span>
+    </span>
+  </span>
+</a>
