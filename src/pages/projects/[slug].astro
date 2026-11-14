@@ -1,0 +1,51 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import MarkdownContent from "../../components/MarkdownContent.astro";
+import { getProject, getProjectsWithDetails } from "../../lib/api";
+import { renderMarkdown } from "../../lib/markdown";
+
+export async function getStaticPaths() {
+  const projects = await getProjectsWithDetails();
+  return projects.map((project) => ({ params: { slug: project.slug } }));
+}
+
+const { slug } = Astro.params;
+const project = await getProject(slug!);
+const html = await renderMarkdown(project.content);
+const year = new Date(project.createdAt).getUTCFullYear();
+---
+
+<BaseLayout
+  title={`${project.title} — AJN`}
+  description={project.description}
+  path={`/projects/${project.slug}/`}
+>
+  <div class="container">
+    <article class="detail">
+      <a class="detail__back" href="/projects/">← Volver a proyectos</a>
+      <div>
+        <p class="eyebrow">{project.state}</p>
+        <h1>{project.title}</h1>
+      </div>
+      <p class="hero__lede">{project.description}</p>
+      <div class="detail__meta">
+        <span class="meta">{year}</span>
+        <span class="meta">/{project.slug}</span>
+      </div>
+      {
+        project.urlThumbnail && (
+          <div class="detail__cover">
+            <img
+              src={project.urlThumbnail}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onerror="this.remove()"
+            />
+          </div>
+        )
+      }
+      <MarkdownContent html={html} />
+    </article>
+  </div>
+</BaseLayout>

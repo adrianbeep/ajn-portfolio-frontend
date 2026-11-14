@@ -1,0 +1,21 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import { getProjectsWithDetails } from "../../lib/api";
+
+const projects = await getProjectsWithDetails();
+---
+
+<BaseLayout title="Proyectos — AJN" description="Proyectos de AJN: software con backend .NET y frontends estáticos.">
+  <div class="container">
+    <section class="section" aria-labelledby="h-proyectos">
+      <div class="section-head">
+        <h2 id="h-proyectos">Proyectos</h2>
+        <span class="section-count">{projects.length} de {projects.length}</span>
+      </div>
+      <div class="card-list">
+        {projects.map((project) => <ProjectCard project={project} />)}
+      </div>
+    </section>
+  </div>
+</BaseLayout>

@@ -1,17 +1,90 @@
 ---
-const title = 'AJN — Portfolio';
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { getProjectsWithDetails } from "../lib/api";
+import { aboutFacts, site, stack } from "../lib/site";
+
+const projects = await getProjectsWithDetails();
 ---
 
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-  </head>
-  <body>
-    <main>
-      <h1>{title}</h1>
-    </main>
-  </body>
-</html>
+<BaseLayout>
+  <section class="hero container">
+    <p class="eyebrow hero__eyebrow">Ingeniero de software</p>
+    <h1 class="hero__title">Construyo software que se sostiene en pie.</h1>
+    <p class="hero__lede">{site.tagline} Proyectos reales, con su contexto y su historia completa.</p>
+    <div class="hero__actions">
+      <a class="button button--primary" href="#proyectos">Ver proyectos</a>
+      <a class="button button--secondary" href="#sobre-mi">Sobre mí</a>
+    </div>
+    <p class="hero__hint">↓ seguir</p>
+  </section>
+
+  <div class="container">
+    <section class="section" id="sobre-mi" aria-labelledby="h-sobre-mi">
+      <div class="section-head">
+        <h2 id="h-sobre-mi">Sobre mí</h2>
+        <span class="section-count">{site.name}</span>
+      </div>
+      <div class="about">
+        <div class="about__copy">
+          <p>
+            Trabajo en dos tiempos: el <strong>backend en .NET 10 con Clean Architecture</strong>
+            (Domain → Application → Infrastructure → Api) y el <strong>frontend en Astro</strong>
+            con islas de React sólo donde hacen falta.
+          </p>
+          <p>
+            Me interesa que el contrato entre ambos sea explícito: endpoints documentados,
+            errores tipados y contenido en <strong>markdown sanitizado en el build</strong>,
+            no en runtime.
+          </p>
+          <p>
+            El sitio que estás viendo es estático: cero kilobytes de JavaScript por defecto.
+            Esa es también la forma en que me gusta construir las cosas — lo mínimo que
+            funciona, y a la vista.
+          </p>
+        </div>
+        <ul class="about__facts">
+          {
+            aboutFacts.map((fact) => (
+              <li>
+                <span class="about__fact-key">{fact.key}</span>
+                <span class="about__fact-value">{fact.value}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="proyectos" aria-labelledby="h-proyectos">
+      <div class="section-head">
+        <h2 id="h-proyectos">Proyectos</h2>
+        <span class="section-count">{projects.length} de {projects.length}</span>
+      </div>
+      <div class="card-list">
+        {projects.map((project) => <ProjectCard project={project} />)}
+      </div>
+    </section>
+
+    <section class="section" id="tecnologias" aria-labelledby="h-tecnologias">
+      <div class="section-head">
+        <h2 id="h-tecnologias">Tecnologías</h2>
+        <span class="section-count">stack</span>
+      </div>
+      <div class="stack">
+        {
+          stack.map((group) => (
+            <div class="stack__row">
+              <span class="stack__label">{group.label}</span>
+              <div class="stack__chips">
+                {group.items.map((item) => (
+                  <span class="chip">{item}</span>
+                ))}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+  </div>
+</BaseLayout>
