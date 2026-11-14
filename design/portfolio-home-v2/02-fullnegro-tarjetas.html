@@ -101,70 +101,36 @@
   }
   .chip:hover { border-color: var(--accent); transform: translateY(-1px); }
 
-  /* ---------- flashcards (1 por fila, centradas) ---------- */
-  .cards { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+  /* ---------- tarjetas de proyecto (1 por fila, centradas) ---------- */
+  .cards { display: flex; flex-direction: column; align-items: center; gap: 24px; }
   .card {
-    position: relative; width: min(720px, 100%);
+    width: min(420px, 100%);
     background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-    overflow: hidden; perspective: 1400px;
+    overflow: hidden; text-decoration: none; display: block;
+    transition: transform 160ms ease, border-color 160ms ease;
   }
-  /* Giro sin JavaScript: checkbox invisible + selector hermano `~` (no `:has()`). */
-  .flip-toggle { position: absolute; opacity: 0; pointer-events: none; }
-  .flip-toggle:checked ~ .card-inner { transform: rotateY(180deg); }
-  .flip-toggle:focus-visible ~ .card-inner .flip-btn { outline: 2px solid var(--accent); outline-offset: 3px; }
-  .card-inner {
-    position: relative; width: 100%; min-height: 210px; display: grid;
-    transform-style: preserve-3d; transition: transform 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  }
-  .face {
-    grid-area: 1 / 1; backface-visibility: hidden;
-    border-radius: var(--radius); padding: 22px; gap: 14px;
-  }
-  .face-back { transform: rotateY(180deg); background: var(--surface-2); border: 1px solid var(--line); }
-  .face-front {
-    display: grid; gap: 6px 20px; align-content: start;
-    grid-template-columns: 210px minmax(0, 1fr);
-    grid-template-areas: "thumb title" "thumb desc" "thumb foot";
-  }
-  .face-front > .thumb { grid-area: thumb; }
-  .face-front > h3 { grid-area: title; margin: 0; }
-  .face-front > .desc { grid-area: desc; margin: 0; }
-  .face-front > .foot { grid-area: foot; }
-  .face-back { display: grid; grid-template-columns: 1fr; gap: 12px; align-content: start; }
-  .face-back h3 { margin: 0; font-size: 21px; letter-spacing: -0.012em; }
-
-  .thumb {
-    position: relative; align-self: start;
-    aspect-ratio: 16 / 9; border-radius: 10px; border: 1px solid var(--line);
+  .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .cover {
+    position: relative; aspect-ratio: 4 / 3;
     background: linear-gradient(135deg, var(--thumb-grad-a), var(--thumb-grad-b));
     display: grid; place-items: center; color: var(--fg-dim);
-    font-family: var(--serif); font-size: 30px; letter-spacing: -0.02em;
+    font-family: var(--serif); font-size: 28px; letter-spacing: -0.02em;
+    border-bottom: 1px solid var(--line);
   }
-  .thumb .badge {
+  .cover .badge {
     position: absolute; top: 10px; left: 10px; font-family: var(--mono);
     font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
     color: var(--fg); background: var(--overlay-bg); border: 1px solid var(--line);
     padding: 4px 10px; border-radius: 999px;
   }
-  .card h3 { font-size: 21px; letter-spacing: -0.012em; }
-  .card .desc { color: var(--fg-dim); font-size: 15px; margin: 0; }
-  .card .foot {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 16px; font-family: var(--mono); font-size: 12px; color: var(--fg-dim); letter-spacing: 0.04em;
+  .card-body { display: block; padding: 18px 20px 20px; }
+  .card h3 { margin: 0 0 8px; font-size: 20px; letter-spacing: -0.012em; }
+  .card .desc { color: var(--fg-dim); font-size: 15px; margin: 0 0 14px; }
+  .card .meta {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    font-family: var(--mono); font-size: 12px; color: var(--fg-dim); letter-spacing: 0.04em;
   }
-  .flip-btn {
-    font-family: var(--sans); font-size: 14px; color: var(--fg); text-decoration: none;
-    border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px;
-    background: transparent; cursor: pointer; transition: border-color 140ms ease, color 140ms ease;
-  }
-  .flip-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .back-body { color: var(--fg-dim); font-size: 15px; margin: 0; }
-  .back-body strong { color: var(--fg); font-weight: 600; }
-  .meta-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  .meta-list li { display: flex; justify-content: space-between; gap: 16px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; }
-  .meta-list .k { color: var(--fg-dim); }
-  .meta-list .v { color: var(--fg); }
-  .more { font-size: 15px; color: var(--accent); text-decoration: none; font-weight: 600; }
+  .card .meta .more { color: var(--accent); font-weight: 600; }
 
   /* ---------- escrituras ---------- */
   .notes { list-style: none; margin: 0; padding: 0; }
@@ -216,8 +182,8 @@
     <p class="kicker">Ingeniero de software</p>
     <h1>Construyo software que se sostiene en pie.</h1>
     <p class="lede">
-      Backend .NET, APIs REST y frontends estáticos. Cada proyecto es una ficha:
-      usá el botón «Girar» para ver el detalle.
+      Backend .NET, APIs REST y frontends estáticos. Proyectos reales, con su contexto
+      y su historia completa.
     </p>
     <div class="actions">
       <a class="btn btn-primary" href="#proyectos">Ver proyectos</a>
@@ -276,77 +242,35 @@
       </div>
 
       <div class="cards">
-        <article class="card">
-          <input type="checkbox" id="flip-1" class="flip-toggle" />
-          <div class="card-inner">
-            <div class="face face-front">
-              <div class="thumb">
-                <span class="badge">.NET</span>
-                <span>API</span>
-              </div>
-              <h3>API de Gestión</h3>
-              <p class="desc">API REST para gestión de proyectos.</p>
-              <div class="foot">
-                <span>createdAt 2026-02-01 · state Active</span>
-                <label class="flip-btn" for="flip-1">Girar</label>
-              </div>
-            </div>
-            <div class="face face-back">
-              <h3>API de Gestión</h3>
-              <p class="back-body">
-                <strong>Qué es.</strong> API REST para gestión de proyectos y contribuciones.
-                Clean Architecture, EF Core sobre SQLite y autenticación por cookie httpOnly.
-              </p>
-              <ul class="meta-list">
-                <li><span class="k">slug</span><span class="v">api-gestion</span></li>
-                <li><span class="k">createdAt</span><span class="v">2026-02-01</span></li>
-                <li><span class="k">updatedAt</span><span class="v">2026-02-01</span></li>
-                <li><span class="k">state</span><span class="v">Active</span></li>
-              </ul>
-              <a class="more" href="#">Ver el proyecto →</a>
-              <div class="foot">
-                <span>content: markdown</span>
-                <label class="flip-btn" for="flip-1">Volver</label>
-              </div>
-            </div>
-          </div>
-        </article>
+        <a class="card" href="#">
+          <span class="cover">
+            <span class="badge">.NET</span>
+            <span>API</span>
+          </span>
+          <span class="card-body">
+            <h3>API de Gestión</h3>
+            <p class="desc">API REST para gestión de proyectos.</p>
+            <span class="meta">
+              <span>2026 · Active</span>
+              <span class="more">Ver proyecto →</span>
+            </span>
+          </span>
+        </a>
 
-        <article class="card">
-          <input type="checkbox" id="flip-2" class="flip-toggle" checked />
-          <div class="card-inner">
-            <div class="face face-front">
-              <div class="thumb">
-                <span class="badge">Astro</span>
-                <span>WEB</span>
-              </div>
-              <h3>Mi Portfolio</h3>
-              <p class="desc">Sitio web de portfolio personal.</p>
-              <div class="foot">
-                <span>createdAt 2026-01-01 · state Active</span>
-                <label class="flip-btn" for="flip-2">Girar</label>
-              </div>
-            </div>
-            <div class="face face-back">
-              <h3>Mi Portfolio</h3>
-              <p class="back-body">
-                <strong>Qué es.</strong> Sitio de portfolio personal con panel editorial:
-                contenido en markdown, sanitizado en el frontend y publicado en build.
-              </p>
-              <ul class="meta-list">
-                <li><span class="k">slug</span><span class="v">mi-portfolio</span></li>
-                <li><span class="k">createdAt</span><span class="v">2026-01-01</span></li>
-                <li><span class="k">updatedAt</span><span class="v">2026-01-01</span></li>
-                <li><span class="k">state</span><span class="v">Active</span></li>
-              </ul>
-              <a class="more" href="#">Ver el proyecto →</a>
-              <div class="foot">
-                <span>content: markdown</span>
-                <label class="flip-btn" for="flip-2">Volver</label>
-              </div>
-            </div>
-          </div>
-        </article>
+        <a class="card" href="#">
+          <span class="cover">
+            <span class="badge">Astro</span>
+            <span>WEB</span>
+          </span>
+          <span class="card-body">
+            <h3>Mi Portfolio</h3>
+            <p class="desc">Sitio web de portfolio personal.</p>
+            <span class="meta">
+              <span>2026 · Active</span>
+              <span class="more">Ver proyecto →</span>
+            </span>
+          </span>
+        </a>
       </div>
     </section>
 

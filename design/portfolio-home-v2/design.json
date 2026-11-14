@@ -11,9 +11,9 @@
       "height": 900
     },
     {
-      "file": "02-flashcards-fullnegro.html",
-      "title": "Full negro + lista de flashcards",
-      "tradeoff": "Negro pleno, serif de titular y proyectos como fichas que se giran para revelar el detalle (datos reales del backend: título, slug, descripción, contenido markdown, fecha, estado). Estructura de la home: hero a pantalla completa, Sobre mí, Proyectos (fichas 1 por fila, centradas, layout horizontal), Tecnologías y Escrituras. Deja de lado la estética de terminal; a cambio el sitio pierde la ligereza de las miniaturas y el giro hay que resolverlo sin JavaScript.",
+      "file": "02-fullnegro-tarjetas.html",
+      "title": "Full negro + tarjetas de proyecto",
+      "tradeoff": "Negro pleno, serif de titular y proyectos como tarjetas con imagen arriba y texto abajo (referencia del usuario), apiladas una por fila y centradas. Estructura de la home: hero a pantalla completa, Sobre mí, Proyectos, Tecnologías y Escrituras. Deja de lado la estética de terminal y cualquier interacción en la tarjeta; a cambio la miniatura es el único elemento visual (hoy es un placeholder, no hay imágenes reales del backend).",
       "width": 1440,
       "height": 900
     },
