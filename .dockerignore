@@ -1,0 +1,36 @@
+# Dependencies and build output: rebuilt inside the image.
+node_modules/
+dist/
+.astro/
+.vercel/
+.output/
+
+# Local scratch and machine-local state.
+screenshots/
+wireframes/
+odd/
+design/
+.pi/
+*.local
+.env
+.env.*
+!.env.example
+
+# Git and CI metadata.
+.git/
+.github/
+
+# Editor and OS noise.
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
+
+# Logs and coverage.
+logs/
+*.log
+coverage/
+test-results/
+playwright-report/
