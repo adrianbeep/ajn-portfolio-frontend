@@ -1,0 +1,60 @@
+---
+import type { GetStaticPaths, Page } from "astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import Pagination from "../../components/Pagination.astro";
+import { getAllProjects, PROJECTS_PAGE_SIZE } from "../../lib/api";
+import type { ProjectWithDetail } from "../../lib/types";
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const projects = await getAllProjects();
+  return paginate(projects, { pageSize: PROJECTS_PAGE_SIZE });
+}) satisfies GetStaticPaths;
+
+interface Props {
+  page: Page<ProjectWithDetail>;
+}
+
+const { page } = Astro.props;
+
+const currentPage = page.currentPage;
+const lastPage = page.lastPage;
+
+/** Base del listado: la primera página es "/projects/", las demás "/projects/{n}/". */
+const pagePath = (number: number) => (number === 1 ? "/projects/" : `/projects/${number}/`);
+
+/** Los links del head (rel=prev/next) son absolutos, como el canonical. */
+const absoluteUrl = (path: string) => new URL(path, Astro.site ?? Astro.url).href;
+
+const canonicalPath = pagePath(currentPage);
+const prevUrl = currentPage > 1 ? absoluteUrl(pagePath(currentPage - 1)) : undefined;
+const nextUrl = currentPage < lastPage ? absoluteUrl(pagePath(currentPage + 1)) : undefined;
+
+const title = currentPage === 1 ? "Proyectos — AJN" : `Proyectos — AJN · Página ${currentPage}`;
+const description = "Proyectos de AJN: software con backend .NET y frontends estáticos.";
+---
+
+<BaseLayout title={title} description={description} path={canonicalPath} prevUrl={prevUrl} nextUrl={nextUrl}>
+  <div class="container">
+    <section class="section" id="proyectos" aria-labelledby="h-proyectos">
+      <div class="section-head">
+        <h2 id="h-proyectos">Proyectos</h2>
+        <span class="section-count">{page.data.length} de {page.total}</span>
+      </div>
+      {
+        page.data.length > 0 ? (
+          <div class="card-list">
+            {page.data.map((project) => (
+              <ProjectCard project={project} />
+            ))}
+          </div>
+        ) : (
+          <div class="empty-state">
+            <p>Todavía no hay proyectos publicados. El listado se completa a medida que se publica el detalle de cada uno.</p>
+          </div>
+        )
+      }
+      <Pagination currentPage={currentPage} lastPage={lastPage} baseUrl="/projects" />
+    </section>
+  </div>
+</BaseLayout>

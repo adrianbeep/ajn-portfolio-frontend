@@ -1,10 +1,10 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ProjectCard from "../components/ProjectCard.astro";
-import { getProjectsWithDetails } from "../lib/api";
+import { getProjectPage, PROJECTS_PREVIEW_COUNT } from "../lib/api";
 import { aboutFacts, site, stack } from "../lib/site";
 
-const projects = await getProjectsWithDetails();
+const preview = await getProjectPage(1, PROJECTS_PREVIEW_COUNT);
 ---
 
 <BaseLayout>
@@ -59,11 +59,18 @@ const projects = await getProjectsWithDetails();
     <section class="section" id="proyectos" aria-labelledby="h-proyectos">
       <div class="section-head">
         <h2 id="h-proyectos">Proyectos</h2>
-        <span class="section-count">{projects.length} de {projects.length}</span>
+        <span class="section-count">{preview.items.length} de {preview.total}</span>
       </div>
       <div class="card-list">
-        {projects.map((project) => <ProjectCard project={project} />)}
+        {preview.items.map((project) => <ProjectCard project={project} />)}
       </div>
+      {
+        preview.total > preview.items.length && (
+          <a class="button button--secondary projects__more" href="/projects/">
+            Ver los {preview.total} proyectos
+          </a>
+        )
+      }
     </section>
 
     <section class="section" id="tecnologias" aria-labelledby="h-tecnologias">

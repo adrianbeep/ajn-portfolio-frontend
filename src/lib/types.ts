@@ -49,3 +49,16 @@ export type ProjectListDto = PagedList<ProjectSummaryDto>;
 export interface ProjectWithDetail extends ProjectDetailDto {
   summary: ProjectSummaryDto;
 }
+
+/** Una página del listado paginado de proyectos (build time). */
+export interface ProjectPage {
+  items: ProjectWithDetail[];
+  /** Total de proyectos que matchean el filtro, a lo largo de todas las páginas. */
+  total: number;
+  /** Página actual (1-based). */
+  page: number;
+  /** Tamaño de página que la API aplicó realmente. */
+  pageSize: number;
+  /** Cantidad total de páginas: `max(1, ceil(total / pageSize))`. */
+  lastPage: number;
+}

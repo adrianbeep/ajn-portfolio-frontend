@@ -1,16 +1,23 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import MarkdownContent from "../../components/MarkdownContent.astro";
-import { getProject, getProjectsWithDetails } from "../../lib/api";
+import { getAllProjects } from "../../lib/api";
 import { renderMarkdown } from "../../lib/markdown";
+import type { ProjectWithDetail } from "../../lib/types";
 
 export async function getStaticPaths() {
-  const projects = await getProjectsWithDetails();
-  return projects.map((project) => ({ params: { slug: project.slug } }));
+  const projects = await getAllProjects();
+  return projects.map((project) => ({
+    params: { slug: project.slug },
+    props: { project },
+  }));
 }
 
-const { slug } = Astro.params;
-const project = await getProject(slug!);
+interface Props {
+  project: ProjectWithDetail;
+}
+
+const { project } = Astro.props;
 const html = await renderMarkdown(project.content);
 const year = new Date(project.createdAt).getUTCFullYear();
 ---
