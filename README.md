@@ -12,29 +12,76 @@ El contenido (proyectos) viene del backend .NET y se hornea en el HTML **en buil
 - **CSS vanilla** con `@layer` y custom properties en `src/styles/tokens.css`
 - **pnpm** (version pineada en el campo `packageManager`)
 
-## Correr local
+## Levantar el sistema
+
+El sitio necesita una API que responda en `PUBLIC_API_BASE_URL`. Hay tres caminos, y **el puerto cambia según cuál uses** — apuntar al equivocado es el error más común al levantar esto por primera vez.
+
+| Camino | Cómo | Puerto de la API | Requisitos |
+|---|---|---|---|
+| **Stub** (sin backend) | `node stub/server.mjs --port 5239` | `5239` | Node. Datos de fixture, no reales |
+| **Backend con .NET** | `dotnet run` en `ajn-portfolio-backend` | `5239` | SDK .NET 10.0.300+ |
+| **Backend con Docker** | `docker compose up --build` en `ajn-portfolio-backend` | `8080` | Docker |
+
+> **Ojo con el puerto.** El backend en Docker escucha en **8080**, no en 5239. El 5239 es el puerto del backend corriendo con `dotnet run` (`Api/Properties/launchSettings.json`). Si levantás el backend con Docker Compose, la variable tiene que ser `PUBLIC_API_BASE_URL=http://localhost:8080`.
+
+El frontend se levanta siempre igual, apuntando a la API que elegiste:
 
 ```bash
 pnpm install
-pnpm dev
-```
-
-El sitio lee los proyectos del backend en build time. Para el desarrollo diario levantá el backend y exponé su URL:
-
-```bash
 PUBLIC_API_BASE_URL=http://localhost:5239 pnpm dev
 ```
 
-Si la API no responde, el sitio se construye igual pero **sin proyectos**, y el build emite un warning visible. Un backend caído no puede dejar el frontend sin deploy.
+El sitio se sirve en `http://localhost:4321`.
+
+### Con el backend real
+
+El backend es un repo aparte (`ajn-portfolio-backend`) y su README tiene el detalle de cada opción. Lo mínimo para desarrollo diario:
+
+```bash
+# .NET directo
+cd ../ajn-portfolio-backend
+dotnet run                    # API en http://localhost:5239
+```
+
+```bash
+# Docker Compose
+cd ../ajn-portfolio-backend
+docker compose up --build     # API en http://localhost:8080
+```
+
+Con `.NET` la base SQLite se crea sola en el repo. Con Docker, el compose aplica las migraciones (`Database__AutoMigrate: true`) sobre el volumen `api-data` y carga el seed.
+
+### Con el stub, sin backend
+
+Para trabajar sólo con el frontend, o para builds deterministas:
+
+```bash
+node stub/server.mjs --port 5239
+PUBLIC_API_BASE_URL=http://127.0.0.1:5239 pnpm dev
+```
+
+El stub sirve 30 proyectos de fixture que respetan el contrato real de la API. No es el backend: no hay admin, ni autenticación, ni escritura.
+
+### Si la API no responde
+
+El sitio se construye igual pero **sin proyectos**, y el build emite un warning visible con la URL que intentó consultar. Un backend caído no puede dejar el frontend sin deploy. Si ves ese warning, revisá `PUBLIC_API_BASE_URL` — y el puerto, que es la causa más frecuente.
 
 ## Variables de entorno
 
 | Variable | Default | Para qué sirve |
 |---|---|---|
-| `PUBLIC_API_BASE_URL` | — | URL **absoluta** del backend. `undici` (el `fetch` de Node) rechaza URLs relativas. |
+| `PUBLIC_API_BASE_URL` | — | URL **absoluta** del backend. `undici` (el `fetch` de Node) rechaza URLs relativas. Sin ella el sitio se construye sin proyectos. |
 | `SITE_URL` | `https://ajn-portfolio.vercel.app` | Origen canónico. De ahí salen los `canonical`, el `sitemap.xml` y el `robots.txt`. |
 
 Ninguna de las dos es un secreto: son valores públicos de build time, leídos del entorno y nunca horneados en la imagen.
+
+`.env` está en el `.gitignore` y no se versiona. Para desarrollo local basta con exportar la variable en la shell, o copiar el ejemplo:
+
+```bash
+cp .env.example .env
+```
+
+Ahí está la lista de variables con los puertos de cada escenario.
 
 ## Comandos
 
