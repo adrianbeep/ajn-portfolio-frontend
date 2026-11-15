@@ -62,6 +62,10 @@ playwright-report/
 /wireframes/
 *.local
 
+# Local design exploration + SDD working docs (not part of the site)
+/odd/
+/design/
+
 # Local Gentle AI routing (machine-local, not committed)
 /.pi/
 
