@@ -38,14 +38,14 @@ const description = "Proyectos de AJN: software con backend .NET y frontends est
   <div class="container">
     <section class="section" id="proyectos" aria-labelledby="h-proyectos">
       <div class="section-head">
-        <h2 id="h-proyectos">Proyectos</h2>
+        <h1 id="h-proyectos">Proyectos</h1>
         <span class="section-count">{page.data.length} de {page.total}</span>
       </div>
       {
         page.data.length > 0 ? (
           <div class="card-list">
             {page.data.map((project) => (
-              <ProjectCard project={project} />
+              <ProjectCard project={project} headingLevel={2} />
             ))}
           </div>
         ) : (

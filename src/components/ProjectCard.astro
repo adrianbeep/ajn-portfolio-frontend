@@ -3,9 +3,20 @@ import type { ProjectWithDetail } from "../lib/types";
 
 interface Props {
   project: ProjectWithDetail;
+  /**
+   * Nivel del encabezado del título del proyecto.
+   *
+   * La tarjeta se usa bajo un h2 (en la home, dentro de la sección
+   * "Proyectos") y bajo un h1 (en el listado, que es el título de la
+   * página). El nivel correcto depende del contexto, así que lo recibe
+   * explícitamente: un encabezado que salta niveles rompe la jerarquía
+   * para quien navega con un lector de pantalla.
+   */
+  headingLevel?: 2 | 3;
 }
 
-const { project } = Astro.props;
+const { project, headingLevel = 3 } = Astro.props;
+const Heading = `h${headingLevel}` as "h2" | "h3";
 
 const year = new Date(project.createdAt).getUTCFullYear();
 const monogram = project.title
@@ -33,7 +44,7 @@ const monogram = project.title
     <span aria-hidden="true">{monogram}</span>
   </span>
   <span class="card__body">
-    <h3 class="card__title">{project.title}</h3>
+    <Heading class="card__title">{project.title}</Heading>
     <p class="card__description">{project.description}</p>
     <span class="card__meta">
       <span>{year} · {project.state}</span>
