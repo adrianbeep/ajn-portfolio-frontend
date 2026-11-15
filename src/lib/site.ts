@@ -66,3 +66,5 @@ export const stack: StackGroup[] = [
   { label: "Datos", items: ["EF Core 10", "SQLite"] },
   { label: "Infraestructura", items: ["pnpm", "Vercel", "xUnit v3", "FluentAssertions"] },
 ];
+
+export const roto: number = "esto rompe el build";
