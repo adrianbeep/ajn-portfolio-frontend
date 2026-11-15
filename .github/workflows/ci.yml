@@ -31,6 +31,9 @@ jobs:
       - name: pnpm check (inside the container)
         run: docker run --rm ajn-portfolio-frontend:ci pnpm check
 
+      - name: pnpm test (inside the container)
+        run: docker run --rm ajn-portfolio-frontend:ci pnpm test
+
       - name: pnpm build against the stub (inside the container)
         run: |
           docker run --rm --entrypoint sh ajn-portfolio-frontend:ci -c '
