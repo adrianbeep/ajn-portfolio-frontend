@@ -141,7 +141,7 @@
 /* --- sobre mí --- */
 .about {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-16);
 }
 
@@ -155,34 +155,6 @@
 .about__copy strong {
   color: var(--color-fg);
   font-weight: 600;
-}
-
-.about__facts {
-  margin: 0;
-}
-
-.about__facts li {
-  padding-block: var(--space-4);
-  border-top: var(--border-width) solid var(--color-border);
-}
-
-.about__facts li:last-child {
-  border-bottom: var(--border-width) solid var(--color-border);
-}
-
-.about__fact-key {
-  display: block;
-  margin-block-end: var(--space-2);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
-  color: var(--color-accent);
-}
-
-.about__fact-value {
-  color: var(--color-fg-muted);
-  font-size: var(--text-base);
 }
 
 /* --- tecnologías --- */
