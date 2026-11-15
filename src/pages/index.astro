@@ -2,7 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import { getProjectPage, PROJECTS_PREVIEW_COUNT } from "../lib/api";
-import { aboutFacts, site, stack } from "../lib/site";
+import { site, stack } from "../lib/site";
 
 const preview = await getProjectPage(1, PROJECTS_PREVIEW_COUNT);
 ---
@@ -42,16 +42,6 @@ const preview = await getProjectPage(1, PROJECTS_PREVIEW_COUNT);
             funciona, y a la vista.
           </p>
         </div>
-        <ul class="about__facts">
-          {
-            aboutFacts.map((fact) => (
-              <li>
-                <span class="about__fact-key">{fact.key}</span>
-                <span class="about__fact-value">{fact.value}</span>
-              </li>
-            ))
-          }
-        </ul>
       </div>
     </section>
 

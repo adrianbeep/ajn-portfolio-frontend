@@ -29,26 +29,6 @@ export const socialLinks: SiteLink[] = [
   { label: "Email", href: "mailto:naumadrianjoaquin@gmail.com" },
 ];
 
-export interface AboutFact {
-  key: string;
-  value: string;
-}
-
-export const aboutFacts: AboutFact[] = [
-  {
-    key: "Cómo trabajo",
-    value: "El contrato de la API se escribe antes que la interfaz.",
-  },
-  {
-    key: "Qué publico",
-    value: "Markdown con resaltado y sanitizado en build time.",
-  },
-  {
-    key: "Qué busco",
-    value: "Proyectos donde la deuda técnica se paga temprano.",
-  },
-];
-
 export interface StackGroup {
   label: string;
   items: string[];
