@@ -66,6 +66,11 @@
   --footer-statement-max: 34ch;
   --gutter: 2rem;
   --gutter-sm: 1.25rem;
+  /* Alto del header: el hero ocupa la primera pantalla menos este valor.
+     Si el header cambia de alto, hay que actualizar este token.
+     En móvil el nav pasa a dos líneas y el header mide ~181px. */
+  --header-height: 70px;
+  --header-height-mobile: 181px;
 
   /* --- forma --- */
   --radius: 0.875rem;
