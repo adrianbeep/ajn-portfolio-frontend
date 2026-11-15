@@ -153,8 +153,12 @@ td {
   margin-block-end: var(--space-6);
 }
 
+/* Aplica a h2 y a h1: el listado de proyectos usa un h1 como título de
+   página, y sin esto heredaría el tamaño del h1 del hero. */
+.section-head h1,
 .section-head h2 {
   margin: 0;
+  font-size: var(--text-2xl);
 }
 
 .section-count {
