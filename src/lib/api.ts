@@ -46,6 +46,35 @@ async function fetchJson<T>(url: string): Promise<T> {
  */
 const requestCache = new Map<string, Promise<unknown>>();
 
+/** URLs cuyo fetch falló, para avisar una sola vez por URL y no spamear el log. */
+const reportedFailures = new Set<string>();
+
+/**
+ * Avisa que el build se está publicando sin contenido.
+ *
+ * El sitio es estático y hornea los datos en build time: si la API no
+ * responde, el build NO puede abortar (un backend caído no puede dejar el
+ * frontend sin deploy), pero tampoco puede fallar en silencio. El warning va
+ * a stderr para que CI lo muestre aunque el resto del build se vea limpio.
+ */
+function warnUnavailable(url: string, error: unknown): void {
+  if (reportedFailures.has(url)) return;
+  reportedFailures.add(url);
+
+  const reason = error instanceof Error ? error.message : String(error);
+  console.warn(
+    [
+      "",
+      "  ⚠️  API de proyectos no disponible — el sitio se construye SIN contenido de proyectos.",
+      `      URL:    ${url}`,
+      `      Error:  ${reason}`,
+      "      This is a WARNING, not an error: the build continues and the site is",
+      "      published with an empty project listing. Check PUBLIC_API_BASE_URL.",
+      "",
+    ].join("\n"),
+  );
+}
+
 function request<T>(path: string, params?: Record<string, string | number>): Promise<T> {
   const url = apiUrl(path, params);
 
@@ -62,20 +91,74 @@ function request<T>(path: string, params?: Record<string, string | number>): Pro
   return pending;
 }
 
+/**
+ * Igual que `request`, pero tolerante a una API caída.
+ *
+ * Devuelve `fallback` cuando el fetch falla, y registra el warning visible.
+ * La URL que falló queda cacheada con su valor de fallback, así que no se
+ * reintenta y las llamadas siguientes reciben el mismo valor vacío.
+ */
+function requestOrFallback<T>(
+  path: string,
+  params: Record<string, string | number> | undefined,
+  fallback: T,
+): Promise<T> {
+  const url = apiUrl(path, params);
+
+  const pending = request<T>(path, params).catch((error: unknown) => {
+    warnUnavailable(url, error);
+    return fallback;
+  });
+
+  // Lo que queda cacheado es la promise que resuelve al fallback, no la que
+  // falla: así las llamadas siguientes reciben el mismo valor vacío en vez
+  // de volver a propagar el error.
+  requestCache.set(url, pending);
+  return pending;
+}
+
 /** Listado paginado de proyectos. Devuelve el envelope del contrato. */
 export function listProjects(page = 1, pageSize = PROJECTS_PAGE_SIZE): Promise<ProjectListDto> {
-  return request<ProjectListDto>("/projects", { page, pageSize });
+  return requestOrFallback<ProjectListDto>(
+    "/projects",
+    { page, pageSize },
+    { items: [], total: 0, page, pageSize },
+  );
 }
 
 /** Detalle de un proyecto por slug. */
 export function getProject(slug: string): Promise<ProjectDetailDto> {
-  return request<ProjectDetailDto>(`/projects/${encodeURIComponent(slug)}`);
+  return requestOrFallback<ProjectDetailDto>(
+    `/projects/${encodeURIComponent(slug)}`,
+    undefined,
+    // Un detalle inexistente: la página de detalle no se va a generar, pero
+    // el build no se rompe. `getStaticPaths` filtra los que no existen.
+    null as unknown as ProjectDetailDto,
+  );
 }
 
 /** Une un resumen con su detalle: la tarjeta muestra año y estado, que sólo
  * vienen del endpoint de detalle. */
 function withDetail(summary: ProjectSummaryDto, detail: ProjectDetailDto): ProjectWithDetail {
   return { ...detail, summary };
+}
+
+/**
+ * Resuelve los detalles de una página de resúmenes.
+ *
+ * Un detalle que no se pudo obtener (API caída) se descarta en lugar de
+ * romper el build: la tarjeta se salta, pero el resto de la página se
+ * construye.
+ */
+async function resolveDetails(summaries: ProjectSummaryDto[]): Promise<ProjectWithDetail[]> {
+  const resolved = await Promise.all(
+    summaries.map(async (summary) => {
+      const detail = await getProject(summary.slug);
+      return detail ? withDetail(summary, detail) : null;
+    }),
+  );
+
+  return resolved.filter((project): project is ProjectWithDetail => project !== null);
 }
 
 /**
@@ -88,9 +171,7 @@ export async function getProjectPage(
   const list = await listProjects(page, pageSize);
   const appliedPageSize = list.pageSize > 0 ? list.pageSize : PROJECTS_PAGE_SIZE;
 
-  const items = await Promise.all(
-    list.items.map(async (summary) => withDetail(summary, await getProject(summary.slug))),
-  );
+  const items = await resolveDetails(list.items);
 
   return {
     items,
@@ -123,8 +204,5 @@ export async function getAllProjectSummaries(): Promise<ProjectSummaryDto[]> {
  */
 export async function getAllProjects(): Promise<ProjectWithDetail[]> {
   const summaries = await getAllProjectSummaries();
-
-  return Promise.all(
-    summaries.map(async (summary) => withDetail(summary, await getProject(summary.slug))),
-  );
+  return resolveDetails(summaries);
 }
