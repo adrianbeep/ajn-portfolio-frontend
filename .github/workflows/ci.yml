@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Hermetic container check: builds the frontend image, runs pnpm check and
+  # pnpm build inside it against the stub API, and asserts the generated site.
+  #
+  # Needs no backend, no credentials and no network beyond the package
+  # registry. The stub and its fixtures live in the repo.
+  # ---------------------------------------------------------------------------
+  container:
+    name: ajn-portfolio-frontend:ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the frontend image
+        run: docker build --target check -t ajn-portfolio-frontend:ci .
+
+      - name: pnpm check (inside the container)
+        run: docker run --rm ajn-portfolio-frontend:ci pnpm check
+
+      - name: pnpm build against the stub (inside the container)
+        run: |
+          docker run --rm --entrypoint sh ajn-portfolio-frontend:ci -c '
+            set -eu
+
+            # The stub is the API the build talks to. It dies with the container.
+            node stub/server.mjs > /tmp/stub.log 2>&1 &
+            stub_pid=$!
+            trap "kill $stub_pid 2>/dev/null || true" EXIT
+
+            echo "Waiting for the stub API to answer..."
+            i=0
+            until node -e "fetch(\"http://127.0.0.1:5239/health\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; do
+              i=$((i+1))
+              if [ "$i" -ge 30 ]; then
+                echo "The stub API did not start in time." >&2
+                cat /tmp/stub.log >&2
+                exit 1
+              fi
+              sleep 1
+            done
+
+            echo "Building the site against the stub..."
+            PUBLIC_API_BASE_URL=http://127.0.0.1:5239 \
+            SITE_URL=https://ajn-portfolio.vercel.app \
+            pnpm build
+
+            echo "Asserting the generated site..."
+            test -f dist/index.html
+            test -f dist/sitemap.xml
+            test -f dist/robots.txt
+
+            # The fixture projects landed in the built site.
+            test -f dist/projects/mi-portfolio/index.html
+            test -f dist/projects/fixture-proyecto-30/index.html
+            grep -q "Fixture Proyecto 15" dist/projects/index.html
+            grep -q "fixture-proyecto-30" dist/sitemap.xml
+
+            # The seeded project from the real backend is present too.
+            grep -q "https://ajn-portfolio.vercel.app/projects/mi-portfolio/" dist/sitemap.xml
+
+            # The paginated listing rendered one route per page (30 projects,
+            # page size 20).
+            test -f dist/projects/2/index.html
+
+            echo "All assertions passed."
+          '
+
+  # ---------------------------------------------------------------------------
+  # Resilient build: the site must still build when the API is unreachable,
+  # with a visible warning instead of a silent empty site.
+  # ---------------------------------------------------------------------------
+  build-without-api:
+    name: Build survives an unreachable API
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: pnpm check
+        run: pnpm check
+
+      - name: pnpm build with an unreachable API
+        env:
+          # Nothing listens on this port: the build must fall back, not fail.
+          PUBLIC_API_BASE_URL: http://127.0.0.1:1
+          SITE_URL: https://ajn-portfolio.vercel.app
+        run: pnpm build
+
+      - name: The warning must be visible in the log
+        run: |
+          set -eu
+          # Re-run capturing the output, then assert the warning is there.
+          output="$(PUBLIC_API_BASE_URL=http://127.0.0.1:1 SITE_URL=https://ajn-portfolio.vercel.app pnpm build 2>&1)"
+          echo "$output"
+          if ! echo "$output" | grep -q "API de proyectos no disponible"; then
+            echo "The build did not warn about the unreachable API." >&2
+            exit 1
+          fi
+          echo "The warning is present."
+
+      - name: The site is built with the empty state
+        run: |
+          set -eu
+          test -f dist/index.html
+          grep -q "Todavía no hay proyectos publicados" dist/projects/index.html
