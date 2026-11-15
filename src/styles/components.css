@@ -104,15 +104,6 @@
   gap: var(--space-3);
 }
 
-.hero__hint {
-  margin-block-start: var(--space-12);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
-  color: var(--color-fg-muted);
-}
-
 /* --- botones --- */
 .button {
   display: inline-block;
