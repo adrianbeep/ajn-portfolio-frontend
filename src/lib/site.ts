@@ -66,5 +66,3 @@ export const stack: StackGroup[] = [
   { label: "Datos", items: ["EF Core 10", "SQLite"] },
   { label: "Infraestructura", items: ["pnpm", "Vercel", "xUnit v3", "FluentAssertions"] },
 ];
-
-// Verificacion de que un PR en verde puede mergearse.
