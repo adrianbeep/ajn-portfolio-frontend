@@ -26,9 +26,6 @@ body {
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
-  /* El header toma su alto natural y el hero llena el resto de la pantalla. */
-  display: grid;
-  grid-template-rows: auto 1fr;
 }
 
 main {

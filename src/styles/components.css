@@ -75,11 +75,26 @@
 
 /* --- hero --- */
 .hero {
-  flex: 1;
+  /* El hero ocupa la primera pantalla completa menos el header, y es el
+     único bloque en ese rango: el contenido arranca después de scrollear.
+     `100svh` y no `100vh` para que las barras del navegador en móvil no
+     corten el hero.
+     El `min-height` es un piso: si el header ocupa más de lo esperado (en
+     móvil el nav envuelve y pasa a medir ~181px), el hero crece con él en
+     vez de solaparse. */
+  min-height: calc(100svh - var(--header-height));
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding-block: var(--space-20) var(--space-24);
+}
+
+@media (max-width: 40rem) {
+  /* En pantallas angostas el nav pasa a dos líneas: el header es más alto. */
+  .hero {
+    min-height: calc(100svh - var(--header-height-mobile));
+    padding-block: var(--space-16) var(--space-20);
+  }
 }
 
 .hero__eyebrow {
