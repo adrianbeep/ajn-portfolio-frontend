@@ -78,6 +78,38 @@ RUN set -eu; \
     pnpm build
 
 # ---------------------------------------------------------------------------
+# E2E stage: run the browser tests against the built site.
+#
+# Debian, not Alpine: Playwright's Chromium is built against glibc and does
+# not run on musl. The image is the one Playwright supports officially.
+# ---------------------------------------------------------------------------
+FROM mcr.microsoft.com/playwright:v1.65.1-noble AS e2e
+
+# This image does not ship corepack, so pnpm is installed directly. The
+# version matches the `packageManager` field in package.json.
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN npm install --global pnpm@12.18.0
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+# The site is built once against the stub and then served: the suite reuses
+# the same dist/ instead of rebuilding per test.
+ENV STUB_PORT=5239
+ENV PREVIEW_PORT=4321
+ENV SITE_URL=https://ajn-portfolio.vercel.app
+ENV CI=1
+
+# `test:e2e:build` starts the stub, builds the site against it, serves it and
+# runs the suite.
+RUN pnpm test:e2e:build
+
+# ---------------------------------------------------------------------------
 # Runtime stage: serve the generated static output.
 # ---------------------------------------------------------------------------
 FROM nginx:1.27-alpine AS runtime

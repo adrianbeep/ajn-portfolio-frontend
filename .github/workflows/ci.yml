@@ -83,6 +83,27 @@ jobs:
           '
 
   # ---------------------------------------------------------------------------
+  # End-to-end tests: drive the real site in a browser and assert how it
+  # behaves, not just that it compiles.
+  #
+  # The image is the one Playwright supports officially (Debian, not Alpine:
+  # its Chromium is built against glibc and does not run on musl). The site is
+  # built once against the stub and then served, so the suite reuses the same
+  # dist/ instead of rebuilding per test.
+  #
+  # Needs no backend, no credentials and no secrets.
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: End-to-end tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build the site and run the browser tests inside the container
+        run: docker build --target e2e -t ajn-portfolio-frontend:e2e .
+
+  # ---------------------------------------------------------------------------
   # Resilient build: the site must still build when the API is unreachable,
   # with a visible warning instead of a silent empty site.
   # ---------------------------------------------------------------------------
