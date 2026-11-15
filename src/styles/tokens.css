@@ -71,6 +71,7 @@
   --radius: 0.875rem;
   --radius-sm: 0.5rem;
   --radius-lg: 1rem;
+  --radius-pill: 999px;
   --border-width: 1px;
 
   /* --- motion --- */

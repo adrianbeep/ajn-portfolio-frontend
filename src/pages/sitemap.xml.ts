@@ -1,12 +1,22 @@
 import type { APIRoute } from "astro";
-import { getProjectsWithDetails } from "../lib/api";
+import { getAllProjectSummaries, PROJECTS_PAGE_SIZE } from "../lib/api";
 
 /** Sitemap generado en build time a partir de los proyectos reales. */
 export const GET: APIRoute = async ({ site }) => {
   const base = site ?? new URL("https://ajn-portfolio.vercel.app");
-  const projects = await getProjectsWithDetails();
+  const summaries = await getAllProjectSummaries();
 
-  const paths = ["/", "/projects/", ...projects.map((project) => `/projects/${project.slug}/`)];
+  // El listado paginado expone una ruta por página: "/projects/", "/projects/2/"…
+  const lastPage = Math.max(1, Math.ceil(summaries.length / PROJECTS_PAGE_SIZE));
+  const listingPaths = Array.from({ length: lastPage }, (_, index) =>
+    index === 0 ? "/projects/" : `/projects/${index + 1}/`,
+  );
+
+  const paths = [
+    "/",
+    ...listingPaths,
+    ...summaries.map((summary) => `/projects/${summary.slug}/`),
+  ];
   const urls = paths
     .map((path) => `  <url><loc>${new URL(path, base).href}</loc></url>`)
     .join("\n");

@@ -501,6 +501,89 @@
   padding-block: var(--space-24);
 }
 
+/* --- paginación --- */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-12);
+}
+
+.pagination__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.pagination__item {
+  display: flex;
+}
+
+.pagination__item--gap {
+  padding-inline: var(--space-1);
+  color: var(--color-fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.pagination__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-10);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.pagination__link:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.pagination__link--current,
+.pagination__link--current:hover {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+  color: var(--color-accent-fg);
+}
+
+.pagination__link--step {
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+/* --- estado vacío --- */
+.empty-state {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-12);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-surface);
+  color: var(--color-fg-muted);
+  font-size: var(--text-md);
+}
+
+/* --- home: enlace al listado completo --- */
+.projects__more {
+  display: block;
+  width: fit-content;
+  margin-block-start: var(--space-8);
+  margin-inline: auto;
+}
+
 @media (max-width: 53.75rem) {
   .about {
     grid-template-columns: 1fr;

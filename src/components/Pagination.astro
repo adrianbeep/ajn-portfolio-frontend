@@ -1,0 +1,68 @@
+---
+interface Props {
+  /** Página actual (1-based). */
+  currentPage: number;
+  /** Cantidad total de páginas. */
+  lastPage: number;
+  /** Base del listado sin barra final (ej. "/projects"). */
+  baseUrl: string;
+}
+
+const { currentPage, lastPage, baseUrl } = Astro.props;
+
+/** Las URLs se arman acá: `paginate()` las devuelve sin barra final y el
+ * repo usa URLs con barra final. */
+const pageHref = (page: number) => (page === 1 ? `${baseUrl}/` : `${baseUrl}/${page}/`);
+
+type Item = { kind: "page"; page: number } | { kind: "gap"; key: string };
+
+// Ventana de páginas: primera, última y las vecinas de la actual.
+const visible = new Set<number>([1, lastPage]);
+for (const candidate of [currentPage - 1, currentPage, currentPage + 1]) {
+  if (candidate >= 1 && candidate <= lastPage) visible.add(candidate);
+}
+
+const items: Item[] = [];
+let previous = 0;
+for (const page of [...visible].sort((a, b) => a - b)) {
+  if (previous > 0 && page - previous > 1) items.push({ kind: "gap", key: `gap-${previous}` });
+  items.push({ kind: "page", page });
+  previous = page;
+}
+---
+
+{
+  lastPage > 1 && (
+    <nav class="pagination" aria-label="Paginación de proyectos">
+      {currentPage > 1 && (
+        <a class="pagination__link pagination__link--step" href={pageHref(currentPage - 1)} rel="prev">
+          Anterior
+        </a>
+      )}
+      <ol class="pagination__list">
+        {items.map((item) =>
+          item.kind === "gap" ? (
+            <li class="pagination__item pagination__item--gap" aria-hidden="true">
+              …
+            </li>
+          ) : (
+            <li class="pagination__item">
+              <a
+                class:list={["pagination__link", item.page === currentPage && "pagination__link--current"]}
+                href={pageHref(item.page)}
+                aria-current={item.page === currentPage ? "page" : undefined}
+              >
+                {item.page}
+              </a>
+            </li>
+          ),
+        )}
+      </ol>
+      {currentPage < lastPage && (
+        <a class="pagination__link pagination__link--step" href={pageHref(currentPage + 1)} rel="next">
+          Siguiente
+        </a>
+      )}
+    </nav>
+  )
+}
