@@ -1,16 +1,18 @@
 # ajn-portfolio-frontend
 
-Portfolio personal: sitio estático generado con [Astro 7](https://astro.build), con islas de React sólo donde hay interactividad real.
+Portfolio personal: sitio estático generado con [Astro 7](https://astro.build), sin framework en el cliente.
 
 El contenido (proyectos) viene del backend .NET y se hornea en el HTML **en build time**. No hay llamadas a la API en runtime.
 
 ## Stack
 
 - **Astro 7** (`output: 'static'`, adapter `@astrojs/vercel`)
-- **React 19** limitado a islas `.tsx`
+- **React 19** instalado y acotado a islas `.tsx` para el panel de administración (aún no implementado): hoy no hay ninguna isla en `src/`
 - **TypeScript strict**
-- **CSS vanilla** con `@layer` y custom properties en `src/styles/tokens.css`
+- **CSS vanilla** con custom properties en `src/styles/tokens.css`, sin preprocesador
 - **pnpm** (version pineada en el campo `packageManager`)
+
+El único JavaScript que se baja el navegador es un módulo propio en TypeScript —el campo de corrientes que dibuja el fondo del hero en `canvas`— sin framework ni librerías.
 
 ## Levantar el sistema
 
@@ -18,7 +20,7 @@ El sitio necesita una API que responda en `PUBLIC_API_BASE_URL`. Hay tres camino
 
 | Camino | Cómo | Puerto de la API | Requisitos |
 |---|---|---|---|
-| **Stub** (sin backend) | `node stub/server.mjs --port 5239` | `5239` | Node. Datos de fixture, no reales |
+| **Stub** (sin backend) | `node stub/server.mjs --port 5239` | `5239` | Node. Mismo contenido que el seed del backend, sin API de escritura |
 | **Backend con .NET** | `dotnet run` en `ajn-portfolio-backend` | `5239` | SDK .NET 10.0.300+ |
 | **Backend con Docker** | `docker compose up --build` en `ajn-portfolio-backend` | `8080` | Docker |
 
@@ -60,7 +62,7 @@ node stub/server.mjs --port 5239
 PUBLIC_API_BASE_URL=http://127.0.0.1:5239 pnpm dev
 ```
 
-El stub sirve 30 proyectos de fixture que respetan el contrato real de la API. No es el backend: no hay admin, ni autenticación, ni escritura.
+El stub sirve los mismos dos proyectos que siembra el backend real (`mi-portfolio` y `api-gestion`), con el markdown completo y respetando el contrato real de la API. No es el backend: no hay admin, ni autenticación, ni escritura.
 
 ### Si la API no responde
 
@@ -117,7 +119,7 @@ El build necesita una API. Para que el contenedor sea **hermético**, el repo in
 - `GET /projects/{slug}` → el detalle del proyecto
 - `GET /health` → estado del stub
 
-Los fixtures viven en [`stub/fixtures/projects.json`](stub/fixtures/projects.json) y respetan el contrato real del backend (`ajn-portfolio-backend/docs/api-contract.md`, secciones 8 y 11). Son 30 proyectos, así que la paginación queda ejercitada (page size 20 → 2 páginas). Los dos primeros son el seed real del backend (`mi-portfolio`, `api-gestion`).
+Los fixtures viven en [`stub/fixtures/projects.json`](stub/fixtures/projects.json) y respetan el contrato real del backend (`ajn-portfolio-backend/docs/api-contract.md`, secciones 8 y 11). Son los mismos dos proyectos que el backend siembra (`mi-portfolio` y `api-gestion`), así que el build contra el stub produce exactamente el sitio que produce el backend real. Con dos proyectos y page size 20 no hay paginación que ejercitar: el listado es una sola página y no se renderiza `/projects/2/`.
 
 ```bash
 # Levantar el stub a mano
@@ -133,7 +135,7 @@ El `Dockerfile` levanta el stub él mismo durante la etapa de build: el build de
 
 El workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) corre en cada `pull_request` y en cada push a `main`. Tiene dos jobs:
 
-1. **`container`** — construye la imagen, corre `pnpm check` y `pnpm build` dentro del contenedor contra el stub, y verifica que el `dist/` generado contiene el contenido esperado (fixtures en el HTML, el sitemap con las URLs correctas, la paginación renderizada).
+1. **`container`** — construye la imagen, corre `pnpm check` y `pnpm build` dentro del contenedor contra el stub, y verifica que el `dist/` generado contiene el contenido esperado (los proyectos reales en el HTML, el sitemap con las URLs correctas y la ausencia de una segunda página de listado).
 2. **`build-without-api`** — verifica que el build **sobrevive a una API inalcanzable**: sale con código 0, muestra el warning y publica el sitio con el estado vacío.
 
 Ninguno de los dos necesita backend, credenciales ni secretos.
@@ -146,6 +148,7 @@ src/
   layouts/      layouts base
   lib/          cliente de API, markdown, datos del sitio
   pages/        rutas (home, listado paginado, detalle, 404, sitemap, robots)
+  scripts/      módulos de cliente (TypeScript, sin framework)
   styles/       tokens.css (única fuente de espaciado y color), base.css, components.css
 stub/           stub API + fixtures para el build hermético
 ```

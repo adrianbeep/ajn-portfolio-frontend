@@ -26,20 +26,28 @@ const SITE_URL = process.env.SITE_URL ?? "https://ajn-portfolio.vercel.app";
 /**
  * Cómo invocar pnpm.
  *
- * `pnpm` es un shim de Node: `spawn("pnpm", ...)` no lo resuelve bien en
- * todos los entornos (sobre todo dentro del contenedor, donde no está en el
- * PATH por defecto). Ejecutarlo con el propio `node` y el path real del
- * binario funciona en todos los casos.
+ * `pnpm` es un shim: en Windows es un `.cmd` y Node no lo puede ejecutar
+ * sin pasar por `cmd.exe`, así que el spawn va con `shell: true` (en Linux
+ * y macOS el shell es `/bin/sh` y el comportamiento es el mismo).
+ * `PNPM_BIN` permite apuntar a otro binario sin tocar el código.
+ *
+ * El comando va entero como un string y no como `command` + `args`: con
+ * `shell: true` y argumentos sueltos, Node avisa (DEP0190) de que no los
+ * escapa. Acá no hay entrada de usuario en el comando, pero tampoco hace
+ * falta que el log se llene de avisos.
  */
 const PNPM_BIN = process.env.PNPM_BIN ?? "pnpm";
 
-function run(command, args, options = {}) {
+function run(command, options = {}) {
   const { env: extraEnv, ...rest } = options;
 
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    const child = spawn(command, {
       cwd: repoRoot,
       stdio: "inherit",
+      // El shim de pnpm es un `.cmd` en Windows: sin shell, Node no lo
+      // puede ejecutar. En Linux y macOS el shell es `/bin/sh`.
+      shell: true,
       // El env se arma acá y no se sobreescribe después: si `options` trajera
       // un `env` crudo, el PATH se perdería y `spawn` no encontraría pnpm.
       env: { ...process.env, ...extraEnv },
@@ -48,7 +56,7 @@ function run(command, args, options = {}) {
     child.on("error", reject);
     child.on("exit", (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`${command} ${args.join(" ")} salió con código ${code}`));
+      else reject(new Error(`${command} salió con código ${code}`));
     });
   });
 }
@@ -77,7 +85,7 @@ try {
   await waitForStub();
   console.log(`\n→ Construyendo el sitio contra el stub (${STUB_PORT})...\n`);
 
-  await run("pnpm", ["build"], {
+  await run(`${PNPM_BIN} build`, {
     env: {
       PUBLIC_API_BASE_URL: `http://127.0.0.1:${STUB_PORT}`,
       SITE_URL,
@@ -86,7 +94,7 @@ try {
   });
 
   console.log(`\n→ Corriendo los tests e2e...\n`);
-  await run("pnpm", ["exec", "playwright", "test"], { env: { PNPM_BIN } });
+  await run(`${PNPM_BIN} exec playwright test`, { env: { PNPM_BIN } });
 } catch (error) {
   failed = true;
   console.error(error instanceof Error ? error.message : error);
