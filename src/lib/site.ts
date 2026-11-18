@@ -9,12 +9,18 @@ export interface SiteLink {
 }
 
 export const site = {
+  /** Monograma: es la marca del header y del footer. */
   name: "AJN",
-  tagline: "Backend .NET, APIs REST y frontends estáticos.",
+  /** Nombre completo: es el titular del hero y el copyright del footer. */
+  fullName: "Adrián Joaquín Naum",
+  /** Rol: la línea de contexto sobre el nombre. */
+  role: "Analista de Sistemas",
+  tagline:
+    "Tercer año de la Tecnicatura en Análisis de Sistemas, orientado al desarrollo de software: backends .NET, APIs REST y frontends estáticos.",
   statement:
-    "Construyo software que se sostiene en pie: contratos claros, contenido que se publica sin ceremonia y cero kilobytes de JavaScript por defecto.",
+    "Analista de Sistemas: contratos claros, contenido que se publica sin ceremonia y un sitio sin framework en el cliente.",
   description:
-    "Portfolio de AJN: proyectos de software con backend .NET y frontends estáticos, y los detalles de cómo se construyen.",
+    "Portfolio de Adrián Joaquín Naum, Analista de Sistemas: proyectos de software con backend .NET y frontends estáticos, y los detalles de cómo se construyen.",
 } as const;
 
 export const navigation: SiteLink[] = [
@@ -37,7 +43,7 @@ export interface StackGroup {
 export const stack: StackGroup[] = [
   {
     label: "Frontend",
-    items: ["Astro 7", "React 19", "TypeScript", "CSS vanilla", "Markdown · unified", "Shiki"],
+    items: ["Astro 7", "TypeScript", "CSS vanilla", "Markdown · unified", "Shiki"],
   },
   {
     label: "Backend",

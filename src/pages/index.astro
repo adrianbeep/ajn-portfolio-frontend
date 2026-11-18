@@ -26,14 +26,14 @@ const preview = await getProjectSummaryPage(1, PROJECTS_PREVIEW_COUNT);
     <section class="section" id="sobre-mi" aria-labelledby="h-sobre-mi">
       <div class="section-head">
         <h2 id="h-sobre-mi">Sobre mí</h2>
-        <span class="section-count">{site.name}</span>
+        <span class="section-count">{site.role}</span>
       </div>
       <div class="about">
         <div class="about__copy">
           <p>
             Trabajo en dos tiempos: el <strong>backend en .NET 10 con Clean Architecture</strong>
-            (Domain → Application → Infrastructure → Api) y el <strong>frontend en Astro</strong>
-            con islas de React sólo donde hacen falta.
+            (Domain → Application → Infrastructure → Api) y el <strong>frontend en Astro</strong>,
+            con TypeScript y CSS vanilla.
           </p>
           <p>
             Me interesa que el contrato entre ambos sea explícito: endpoints documentados,
@@ -41,9 +41,11 @@ const preview = await getProjectSummaryPage(1, PROJECTS_PREVIEW_COUNT);
             no en runtime.
           </p>
           <p>
-            El sitio que estás viendo es estático: cero kilobytes de JavaScript por defecto.
-            Esa es también la forma en que me gusta construir las cosas — lo mínimo que
-            funciona, y a la vista.
+            El sitio que estás viendo es estático: el HTML se hornea en el build y no hay framework
+            en el cliente. El listado y las entradas no cargan JavaScript externo; el único script
+            del sitio es el que dibuja el fondo de esta pantalla en canvas, sin librerías. Esa es
+            también la forma en que me gusta construir las cosas — lo mínimo que funciona, y a la
+            vista.
           </p>
         </div>
       </div>
@@ -52,7 +54,7 @@ const preview = await getProjectSummaryPage(1, PROJECTS_PREVIEW_COUNT);
     <section class="section" id="proyectos" aria-labelledby="h-proyectos">
       <div class="section-head">
         <h2 id="h-proyectos">Proyectos</h2>
-        <span class="section-count">{preview.items.length} de {preview.total}</span>
+        <span class="section-count">{preview.total} proyectos</span>
       </div>
       <div class="card-list">
         {preview.items.map((project) => <ProjectCard project={project} />)}
