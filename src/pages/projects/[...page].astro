@@ -2,17 +2,22 @@
 import type { GetStaticPaths, Page } from "astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ProjectCard from "../../components/ProjectCard.astro";
+import ListToggle from "../../components/ListToggle.astro";
 import Pagination from "../../components/Pagination.astro";
-import { getAllProjects, PROJECTS_PAGE_SIZE } from "../../lib/api";
-import type { ProjectWithDetail } from "../../lib/types";
+import { getAllProjectSummaries, PROJECTS_PAGE_SIZE } from "../../lib/api";
+import type { ProjectSummaryDto } from "../../lib/types";
 
 export const getStaticPaths = (async ({ paginate }) => {
-  const projects = await getAllProjects();
-  return paginate(projects, { pageSize: PROJECTS_PAGE_SIZE });
+  // El listado se construye SÓLO con resúmenes. Antes resolvía el detalle
+  // de cada proyecto para pintar el año y el estado: un pedido por tarjeta
+  // (N+1) que, además, hacía que un fallo puntual de la API escondiera
+  // proyectos del listado sin avisar. Los dos datos viajan en el resumen.
+  const summaries = await getAllProjectSummaries();
+  return paginate(summaries, { pageSize: PROJECTS_PAGE_SIZE });
 }) satisfies GetStaticPaths;
 
 interface Props {
-  page: Page<ProjectWithDetail>;
+  page: Page<ProjectSummaryDto>;
 }
 
 const { page } = Astro.props;
@@ -39,8 +44,9 @@ const description = "Proyectos de AJN: software con backend .NET y frontends est
     <section class="section" id="proyectos" aria-labelledby="h-proyectos">
       <div class="section-head">
         <h1 id="h-proyectos">Proyectos</h1>
-        <span class="section-count">{page.data.length} de {page.total}</span>
+        <span class="section-count">{page.total} proyectos</span>
       </div>
+      <ListToggle active="projects" />
       {
         page.data.length > 0 ? (
           <div class="card-list">
@@ -54,7 +60,14 @@ const description = "Proyectos de AJN: software con backend .NET y frontends est
           </div>
         )
       }
-      <Pagination currentPage={currentPage} lastPage={lastPage} baseUrl="/projects" />
+      <Pagination
+        currentPage={currentPage}
+        lastPage={lastPage}
+        total={page.total}
+        pageSize={page.size}
+        baseUrl="/projects"
+        label="Paginación de proyectos"
+      />
     </section>
   </div>
 </BaseLayout>

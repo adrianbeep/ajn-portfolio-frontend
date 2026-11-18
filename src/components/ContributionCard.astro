@@ -1,0 +1,64 @@
+---
+import type { ContributionSummaryDto } from "../lib/types";
+
+interface Props {
+  /** El resumen es suficiente para la tarjeta: no hace falta el detalle. */
+  contribution: ContributionSummaryDto;
+  /**
+   * Nivel del encabezado del título de la contribución.
+   *
+   * Igual que en la tarjeta de proyecto: depende de dónde se use la
+   * tarjeta, y un encabezado que salta niveles rompe la jerarquía para
+   * quien navega con un lector de pantalla.
+   */
+  headingLevel?: 2 | 3;
+}
+
+const { contribution, headingLevel = 3 } = Astro.props;
+const Heading = `h${headingLevel}` as "h2" | "h3";
+
+const year = new Date(contribution.createdAt).getUTCFullYear();
+
+/** Monograma de respaldo: si no hay miniatura, la tarjeta no queda rota. */
+const monogram = contribution.title
+  .split(/\s+/)
+  .filter((word) => word.length > 0)
+  .slice(0, 2)
+  .map((word) => word[0]?.toUpperCase() ?? "")
+  .join("");
+---
+
+<article class="card contribution-card">
+  <span class="card__cover">
+    {
+      contribution.urlThumbnail && (
+        <img
+          class="card__cover-image"
+          src={contribution.urlThumbnail}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onerror="this.remove()"
+        />
+      )
+    }
+    <span aria-hidden="true">{monogram}</span>
+  </span>
+  <div class="card__body">
+    <Heading class="card__title">
+      <a href={`/contributions/${contribution.slug}/`}>{contribution.title}</a>
+    </Heading>
+    <p class="card__description">{contribution.description}</p>
+    <span class="card__meta">
+      <span>{year} · {contribution.state}</span>
+      <a
+        class="card__more"
+        href={contribution.urlPrContribution}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Ver la PR<span aria-hidden="true"> ↗</span>
+      </a>
+    </span>
+  </div>
+</article>

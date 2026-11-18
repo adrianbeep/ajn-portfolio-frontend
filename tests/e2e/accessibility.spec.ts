@@ -5,8 +5,8 @@ import { expect, test } from "@playwright/test";
  * Audit de accesibilidad con axe-core.
  *
  * Corre sobre el mismo DOM que montan los demás tests e2e, así que no
- * necesita infraestructura propia. El sitio es estático y sin JavaScript
- * por defecto: lo que se audita es exactamente lo que recibe el usuario.
+ * necesita infraestructura propia. El sitio es estático y no usa framework
+ * en el cliente: lo que se audita es exactamente lo que recibe el usuario.
  *
  * El estándar es WCAG 2.2 AA.
  */
@@ -15,8 +15,9 @@ import { expect, test } from "@playwright/test";
 const PAGES = [
   { path: "/", name: "home" },
   { path: "/projects/", name: "listado de proyectos" },
-  { path: "/projects/2/", name: "listado paginado (página 2)" },
   { path: "/projects/mi-portfolio/", name: "detalle de proyecto" },
+  { path: "/projects/api-gestion/", name: "detalle del segundo proyecto" },
+  { path: "/contributions/", name: "listado de contribuciones" },
   { path: "/404.html", name: "404" },
 ];
 

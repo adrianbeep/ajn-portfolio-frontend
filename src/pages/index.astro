@@ -1,16 +1,20 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import CorrienteField from "../components/CorrienteField.astro";
 import ProjectCard from "../components/ProjectCard.astro";
-import { getProjectPage, PROJECTS_PREVIEW_COUNT } from "../lib/api";
+import { getProjectSummaryPage, PROJECTS_PREVIEW_COUNT } from "../lib/api";
 import { site, stack } from "../lib/site";
 
-const preview = await getProjectPage(1, PROJECTS_PREVIEW_COUNT);
+// La home muestra una porción del catálogo: con los resúmenes alcanza,
+// porque la tarjeta no necesita el detalle de cada proyecto.
+const preview = await getProjectSummaryPage(1, PROJECTS_PREVIEW_COUNT);
 ---
 
 <BaseLayout>
   <section class="hero container">
-    <p class="eyebrow hero__eyebrow">Ingeniero de software</p>
-    <h1 class="hero__title">Construyo software que se sostiene en pie.</h1>
+    <CorrienteField />
+    <p class="eyebrow hero__eyebrow">{site.role}</p>
+    <h1 class="hero__title">{site.fullName}</h1>
     <p class="hero__lede">{site.tagline} Proyectos reales, con su contexto y su historia completa.</p>
     <div class="hero__actions">
       <a class="button button--primary" href="#proyectos">Ver proyectos</a>
@@ -22,14 +26,14 @@ const preview = await getProjectPage(1, PROJECTS_PREVIEW_COUNT);
     <section class="section" id="sobre-mi" aria-labelledby="h-sobre-mi">
       <div class="section-head">
         <h2 id="h-sobre-mi">Sobre mí</h2>
-        <span class="section-count">{site.name}</span>
+        <span class="section-count">{site.role}</span>
       </div>
       <div class="about">
         <div class="about__copy">
           <p>
             Trabajo en dos tiempos: el <strong>backend en .NET 10 con Clean Architecture</strong>
-            (Domain → Application → Infrastructure → Api) y el <strong>frontend en Astro</strong>
-            con islas de React sólo donde hacen falta.
+            (Domain → Application → Infrastructure → Api) y el <strong>frontend en Astro</strong>,
+            con TypeScript y CSS vanilla.
           </p>
           <p>
             Me interesa que el contrato entre ambos sea explícito: endpoints documentados,
@@ -37,9 +41,11 @@ const preview = await getProjectPage(1, PROJECTS_PREVIEW_COUNT);
             no en runtime.
           </p>
           <p>
-            El sitio que estás viendo es estático: cero kilobytes de JavaScript por defecto.
-            Esa es también la forma en que me gusta construir las cosas — lo mínimo que
-            funciona, y a la vista.
+            El sitio que estás viendo es estático: el HTML se hornea en el build y no hay framework
+            en el cliente. El listado y las entradas no cargan JavaScript externo; el único script
+            del sitio es el que dibuja el fondo de esta pantalla en canvas, sin librerías. Esa es
+            también la forma en que me gusta construir las cosas — lo mínimo que funciona, y a la
+            vista.
           </p>
         </div>
       </div>
@@ -48,7 +54,7 @@ const preview = await getProjectPage(1, PROJECTS_PREVIEW_COUNT);
     <section class="section" id="proyectos" aria-labelledby="h-proyectos">
       <div class="section-head">
         <h2 id="h-proyectos">Proyectos</h2>
-        <span class="section-count">{preview.items.length} de {preview.total}</span>
+        <span class="section-count">{preview.total} proyectos</span>
       </div>
       <div class="card-list">
         {preview.items.map((project) => <ProjectCard project={project} />)}

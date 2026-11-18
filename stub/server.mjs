@@ -2,12 +2,16 @@
 /**
  * Stub API for the frontend container build.
  *
- * Serves the two endpoints the site consumes at build time, with the fixture
+ * Serves the endpoints the site consumes at build time, with the fixture
  * data in `fixtures/projects.json`. The shape mirrors the real backend
- * contract (ajn-portfolio-backend/docs/api-contract.md, sections 8 and 11):
+ * contract (ajn-portfolio-backend/docs/api-contract.md):
  *
- *   GET /projects            -> { items, total, page, pageSize }
- *   GET /projects/{slug}     -> project detail
+ *   GET /projects             -> { items, total, page, pageSize }
+ *   GET /projects/{slug}      -> project detail
+ *   GET /contributions        -> { items, total, page, pageSize }
+ *   GET /contributions/{slug} -> contribution detail
+ *
+ * The fixture mirrors the backend seed: 2 projects and 0 contributions.
  *
  * The point is a deterministic build: the same commit must always produce the
  * same `dist/`, so the fixtures live in the repo and never change at runtime.
@@ -43,6 +47,9 @@ const options = parseArgs(process.argv.slice(2));
 const raw = await readFile(options.fixtures, "utf8");
 const fixture = JSON.parse(raw);
 const projects = fixture.projects;
+// The backend seed has no contributions yet: the catalogue is empty on
+// purpose, and the stub has to look the same or the build is not hermetic.
+const contributions = fixture.contributions ?? [];
 
 /** Maximum page size accepted by the real API (GetProjectsQueryHandler). */
 const MAX_PAGE_SIZE = 100;
@@ -55,7 +62,40 @@ function toSummary(project) {
     title: project.title,
     urlThumbnail: project.urlThumbnail,
     description: project.description,
+    // The summary carries the state and the creation date: the listing card
+    // shows "{year} · {state}" and must not need the detail endpoint.
+    state: project.state,
+    createdAt: project.createdAt,
   };
+}
+
+function toContributionSummary(contribution) {
+  return {
+    id: contribution.id,
+    slug: contribution.slug,
+    title: contribution.title,
+    urlThumbnail: contribution.urlThumbnail,
+    urlPrContribution: contribution.urlPrContribution,
+    description: contribution.description,
+    state: contribution.state,
+    createdAt: contribution.createdAt,
+  };
+}
+
+/** Reads the paging parameters, clamping them like the real API does. */
+function readPaging(url) {
+  const requestedPage = Number(url.searchParams.get("page") ?? 1);
+  const requestedPageSize = Number(url.searchParams.get("pageSize") ?? DEFAULT_PAGE_SIZE);
+
+  const page = requestedPage < 1 ? 1 : requestedPage;
+  const pageSize =
+    requestedPageSize < 1
+      ? DEFAULT_PAGE_SIZE
+      : requestedPageSize > MAX_PAGE_SIZE
+        ? MAX_PAGE_SIZE
+        : requestedPageSize;
+
+  return { page, pageSize };
 }
 
 function sendJson(res, status, body) {
@@ -96,18 +136,29 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // GET /contributions/{slug}
+  const contributionMatch = path.match(/^\/contributions\/([^/]+)$/);
+  if (contributionMatch) {
+    const slug = decodeURIComponent(contributionMatch[1]);
+    const contribution = contributions.find((candidate) => candidate.slug === slug);
+
+    if (!contribution) {
+      sendJson(res, 404, {
+        type: "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+        title: "Not Found",
+        status: 404,
+        detail: `Contribution '${slug}' was not found.`,
+      });
+      return;
+    }
+
+    sendJson(res, 200, contribution);
+    return;
+  }
+
   // GET /projects
   if (path === "/projects") {
-    const requestedPage = Number(url.searchParams.get("page") ?? 1);
-    const requestedPageSize = Number(url.searchParams.get("pageSize") ?? DEFAULT_PAGE_SIZE);
-
-    const page = requestedPage < 1 ? 1 : requestedPage;
-    const pageSize =
-      requestedPageSize < 1
-        ? DEFAULT_PAGE_SIZE
-        : requestedPageSize > MAX_PAGE_SIZE
-          ? MAX_PAGE_SIZE
-          : requestedPageSize;
+    const { page, pageSize } = readPaging(url);
 
     const start = (page - 1) * pageSize;
     const items = projects.slice(start, start + pageSize).map(toSummary);
@@ -116,9 +167,24 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // GET /contributions
+  if (path === "/contributions") {
+    const { page, pageSize } = readPaging(url);
+
+    const start = (page - 1) * pageSize;
+    const items = contributions.slice(start, start + pageSize).map(toContributionSummary);
+
+    sendJson(res, 200, { items, total: contributions.length, page, pageSize });
+    return;
+  }
+
   // GET /health
   if (path === "/health") {
-    sendJson(res, 200, { status: "healthy", projects: projects.length });
+    sendJson(res, 200, {
+      status: "healthy",
+      projects: projects.length,
+      contributions: contributions.length,
+    });
     return;
   }
 
@@ -128,6 +194,6 @@ const server = http.createServer((req, res) => {
 server.listen(options.port, "0.0.0.0", () => {
   console.log(
     `stub API listening on http://0.0.0.0:${options.port} ` +
-      `(${projects.length} projects from ${options.fixtures})`,
+      `(${projects.length} projects, ${contributions.length} contributions from ${options.fixtures})`,
   );
 });

@@ -1,8 +1,9 @@
 ---
-import type { ProjectWithDetail } from "../lib/types";
+import type { ProjectSummaryDto } from "../lib/types";
 
 interface Props {
-  project: ProjectWithDetail;
+  /** El resumen es suficiente para la tarjeta: no hace falta el detalle. */
+  project: ProjectSummaryDto;
   /**
    * Nivel del encabezado del título del proyecto.
    *

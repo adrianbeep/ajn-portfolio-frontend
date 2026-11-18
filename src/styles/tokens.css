@@ -84,6 +84,20 @@
   --duration-fast: 140ms;
   --duration-base: 160ms;
   --duration-slow: 240ms;
+
+  /* --- efecto de fondo (campo de corrientes) ---
+     El campo se dibuja en un canvas y se pinta con estos tokens. Las dos
+     máscaras se aplican AL MISMO canvas y se interseccan:
+       - la horizontal desvanece el campo hacia la izquierda, para que nunca
+         compita con la columna de texto del hero;
+       - la vertical lo desvanece arriba y abajo, para que las líneas no
+         terminen con un corte duro al llegar al pliegue de la pantalla. */
+  --effect-line: #3d3d3a;
+  --effect-accent: var(--color-accent);
+  --effect-alpha: 1;
+  --effect-accent-alpha: 0.62;
+  --effect-mask-x: linear-gradient(to right, transparent 0%, transparent 26%, #000 74%);
+  --effect-mask-y: linear-gradient(to bottom, transparent 0%, #000 8%, #000 92%, transparent 100%);
 }
 
 [data-theme="light"] {
@@ -99,4 +113,13 @@
   --color-accent: #b8390a;
   --color-accent-fg: #ffffff;
   --color-overlay: rgb(20 17 14 / 6%);
+
+  /* --- efecto de fondo (campo de corrientes) ---
+     El tema claro dibuja el campo con un trazo más claro y un acento más
+     tenue: las mismas máscaras del tema oscuro siguen aplicando (se heredan
+     de `:root`), así que la geometría del efecto no cambia con el tema. */
+  --effect-line: #d6cdbc;
+  --effect-accent: var(--color-accent);
+  --effect-alpha: 1;
+  --effect-accent-alpha: 0.52;
 }

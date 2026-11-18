@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("sitemap y robots", () => {
-  test("el sitemap lista la home, el listado paginado y cada proyecto", async ({ request }) => {
+  test("el sitemap lista la home, el listado y cada proyecto", async ({ request }) => {
     const response = await request.get("/sitemap.xml");
     expect(response.status()).toBe(200);
 
@@ -13,13 +13,20 @@ test.describe("sitemap y robots", () => {
 
     // La home.
     expect(xml).toContain("<loc>https://ajn-portfolio.vercel.app/</loc>");
-    // Las dos páginas del listado.
+    // El listado: con dos proyectos y page size 10 hay una sola página.
     expect(xml).toContain("<loc>https://ajn-portfolio.vercel.app/projects/</loc>");
-    expect(xml).toContain("<loc>https://ajn-portfolio.vercel.app/projects/2/</loc>");
-    // El proyecto del seed real.
+    // Y el detalle de cada proyecto.
     expect(xml).toContain("<loc>https://ajn-portfolio.vercel.app/projects/mi-portfolio/</loc>");
-    // Y un fixture del stub.
-    expect(xml).toContain("<loc>https://ajn-portfolio.vercel.app/projects/fixture-proyecto-30/</loc>");
+    expect(xml).toContain("<loc>https://ajn-portfolio.vercel.app/projects/api-gestion/</loc>");
+  });
+
+  test("el catálogo de contribuciones no entra al sitemap si está vacío", async ({ request }) => {
+    const response = await request.get("/sitemap.xml");
+    const xml = await response.text();
+
+    // Una URL que lleva a un estado vacío no se indexa: el catálogo de
+    // contribuciones sólo entra al sitemap cuando hay algo que listar.
+    expect(xml).not.toContain("/contributions/");
   });
 
   test("el sitemap tiene una URL por proyecto más las del listado y la home", async ({ request }) => {
@@ -27,8 +34,9 @@ test.describe("sitemap y robots", () => {
     const xml = await response.text();
 
     const locations = xml.match(/<loc>/g) ?? [];
-    // 30 proyectos + 2 páginas de listado + 1 home.
-    expect(locations.length).toBe(33);
+    // 2 proyectos + 1 página de listado + 1 home. El catálogo de
+    // contribuciones no cuenta: está vacío y no se indexa.
+    expect(locations.length).toBe(4);
   });
 
   test("robots.txt apunta al sitemap y permite todo", async ({ request }) => {

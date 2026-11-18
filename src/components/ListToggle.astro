@@ -1,0 +1,40 @@
+---
+import { countContributions } from "../lib/api";
+
+interface Props {
+  /** Catálogo activo: el que lleva `aria-current="page"`. */
+  active: "projects" | "contributions";
+}
+
+const { active } = Astro.props;
+
+/**
+ * El toggle sólo se renderiza si hay al menos una contribución.
+ *
+ * Un enlace a un catálogo vacío es ruido: el visitante lo toca y encuentra
+ * un estado vacío. Con el catálogo de contribuciones todavía sin sembrar, el
+ * toggle no aparece en ninguna parte del sitio, y eso es lo correcto.
+ */
+const hasContributions = (await countContributions()) > 0;
+---
+
+{
+  hasContributions && (
+    <nav class="list-toggle" aria-label="Catálogos">
+      <a
+        class="list-toggle__item"
+        href="/projects/"
+        aria-current={active === "projects" ? "page" : undefined}
+      >
+        Proyectos
+      </a>
+      <a
+        class="list-toggle__item"
+        href="/contributions/"
+        aria-current={active === "contributions" ? "page" : undefined}
+      >
+        Contribuciones
+      </a>
+    </nav>
+  )
+}

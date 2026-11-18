@@ -42,8 +42,11 @@
   transition: color var(--duration-fast) var(--ease-out);
 }
 
+/* El hover usa el acento, igual que el toggle de tema: los dos son
+   controles de la cabecera y comparten el mismo código de color, así que
+   el puntero los marca de la misma forma. */
 .site-nav a:hover {
-  color: var(--color-fg);
+  color: var(--color-accent);
 }
 
 /* --- theme toggle --- */
@@ -75,6 +78,10 @@
 
 /* --- hero --- */
 .hero {
+  /* El canvas del campo de corrientes es un hijo absoluto de esta sección y
+     necesita un ancestro posicionado para medir su caja. `position:
+     relative` no altera el layout: el hero sigue midiendo lo mismo. */
+  position: relative;
   /* El hero ocupa la primera pantalla completa menos el header, y es el
      único bloque en ese rango: el contenido arranca después de scrollear.
      `100svh` y no `100vh` para que las barras del navegador en móvil no
@@ -102,7 +109,10 @@
 }
 
 .hero__title {
-  max-width: 16ch;
+  /* El titular es el nombre completo, no una frase: 20ch es lo que entra
+     en una línea al tamaño máximo del clamp (72px). Con 16ch el nombre
+     partía en dos y "Naum" quedaba solo abajo. */
+  max-width: 20ch;
   margin-block-end: var(--space-6);
 }
 
@@ -312,6 +322,17 @@
   font-weight: 600;
 }
 
+/* El título de la tarjeta de contribución es el link al detalle: la
+   tarjeta no puede ser un link entero porque adentro va el link al pull
+   request, y un link dentro de otro link no es HTML válido. */
+.card__title a {
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.card:hover .card__title a {
+  color: var(--color-accent);
+}
+
 /* --- detalle --- */
 .detail {
   display: grid;
@@ -347,6 +368,16 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-4);
+}
+
+/* El link al pull request upstream: es lo que define a una contribución. */
+.detail__link {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.detail__link:hover {
+  text-decoration: underline;
 }
 
 /* --- markdown --- */
@@ -392,17 +423,21 @@
   margin-block: var(--space-6);
 }
 
-/* Shiki dual theme: el color de cada token depende del tema activo. */
+/* Shiki dual theme: el color de cada token depende del tema activo.
+   El fondo NO es el del tema de Shiki sino `--color-surface`, para que el
+   bloque de código sea una superficie más del sistema y no un panel ajeno.
+   En dark eso además sube el contraste de todos los tokens, porque
+   --color-surface es más oscuro que el fondo de dark-plus. */
 .shiki,
 .shiki span {
   color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg);
+  background-color: var(--color-surface);
 }
 
 [data-theme="light"] .shiki,
 [data-theme="light"] .shiki span {
   color: var(--shiki-light);
-  background-color: var(--shiki-light-bg);
+  background-color: var(--color-surface);
 }
 
 /* --- footer --- */
@@ -479,22 +514,32 @@
   padding-block: var(--space-24);
 }
 
-/* --- paginación --- */
+/* --- paginación ---
+   La barra es una fila: a la izquierda el rango de ítems que se está
+   viendo ("11-20 de 34") y a la derecha la navegación de páginas. En
+   pantallas angostas se apila. */
 .pagination {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
+  justify-content: space-between;
+  gap: var(--space-4);
   margin-block-start: var(--space-12);
+}
+
+.pagination__range {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-fg-muted);
 }
 
 .pagination__list {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
   gap: var(--space-2);
+  margin-inline-start: auto;
 }
 
 .pagination__item {
@@ -538,8 +583,73 @@
 }
 
 .pagination__link--step {
+  gap: var(--space-1);
   font-family: var(--font-sans);
   font-weight: 600;
+}
+
+.pagination__chevron {
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  line-height: 1;
+}
+
+/* --- toggle de catálogos --- */
+.list-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: fit-content;
+  margin-inline: auto;
+  margin-block-end: var(--space-6);
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-surface);
+}
+
+.list-toggle__item {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-muted);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.list-toggle__item:hover {
+  color: var(--color-fg);
+}
+
+.list-toggle__item[aria-current="page"] {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+
+@media (max-width: 40rem) {
+  /* La etiqueta del paso colapsa y queda el chevron. Se oculta visualmente
+     y no con `display: none`: el enlace tiene que conservar su nombre
+     accesible en cualquier ancho. */
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .pagination__list {
+    margin-inline-start: 0;
+  }
+
+  .pagination__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 /* --- estado vacío --- */
@@ -577,4 +687,31 @@
     grid-template-columns: 1fr;
     gap: var(--space-8);
   }
+}
+
+/* --- campo de corrientes: fondo del hero ---
+   El canvas está fuera de flujo (`position: absolute` + `inset: 0`), así que
+   no suma altura ni ancho al hero: el hero sigue midiendo una pantalla. Las
+   dos máscaras se interseccan — la horizontal apaga el campo hacia la
+   izquierda (columna de texto) y la vertical lo apaga en el borde superior
+   e inferior (pliegue de la pantalla). */
+.corriente {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask-image: var(--effect-mask-x), var(--effect-mask-y);
+  mask-image: var(--effect-mask-x), var(--effect-mask-y);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+/* El contenido del hero va por encima del canvas. `position: relative` no
+   cambia el layout, así que la geometría del hero no se mueve. */
+.hero > :not(.corriente) {
+  position: relative;
+  z-index: 1;
 }

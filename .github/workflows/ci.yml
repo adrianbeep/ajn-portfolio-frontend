@@ -66,18 +66,18 @@ jobs:
             test -f dist/sitemap.xml
             test -f dist/robots.txt
 
-            # The fixture projects landed in the built site.
+            # The seeded projects landed in the built site.
             test -f dist/projects/mi-portfolio/index.html
-            test -f dist/projects/fixture-proyecto-30/index.html
-            grep -q "Fixture Proyecto 15" dist/projects/index.html
-            grep -q "fixture-proyecto-30" dist/sitemap.xml
+            test -f dist/projects/api-gestion/index.html
+            grep -q "Mi Portfolio" dist/projects/index.html
+            grep -q "api-gestion" dist/sitemap.xml
 
             # The seeded project from the real backend is present too.
             grep -q "https://ajn-portfolio.vercel.app/projects/mi-portfolio/" dist/sitemap.xml
 
-            # The paginated listing rendered one route per page (30 projects,
-            # page size 20).
-            test -f dist/projects/2/index.html
+            # There is no second listing page: the two seeded projects fit in
+            # one page (page size 20), so /projects/2/ must not be generated.
+            test ! -f dist/projects/2/index.html
 
             echo "All assertions passed."
           '
