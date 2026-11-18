@@ -1,9 +1,12 @@
 import type {
+  ContributionDetailDto,
+  ContributionListDto,
+  ContributionPage,
+  ContributionSummaryDto,
   ProjectDetailDto,
   ProjectListDto,
   ProjectPage,
   ProjectSummaryDto,
-  ProjectWithDetail,
 } from "./types";
 
 /**
@@ -13,9 +16,19 @@ import type {
  */
 const BASE_URL = (import.meta.env.PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
 
-/** Tamaño de página alineado al contrato de la API
- * (ajn-portfolio-backend/docs/api-contract.md, sección "Pagination"): default 20, máximo 100. */
-export const PROJECTS_PAGE_SIZE = 20;
+/**
+ * Tamaño de página alineado al contrato de la API
+ * (ajn-portfolio-backend/docs/api-contract.md, sección "2.6 Pagination"):
+ * default 20, máximo 100.
+ *
+ * Diez, no veinte: la tarjeta de proyecto mide ~420px de alto, así que veinte
+ * tarjetas apiladas son una página de 10.000px con el paginador al final,
+ * fuera de la pantalla. Diez deja el paginador a la vista.
+ */
+export const PROJECTS_PAGE_SIZE = 10;
+
+/** Las contribuciones se paginan con el mismo tamaño que los proyectos. */
+export const CONTRIBUTIONS_PAGE_SIZE = 10;
 
 /** Proyectos que muestra la home antes de linkear al listado completo. */
 export const PROJECTS_PREVIEW_COUNT = 4;
@@ -126,55 +139,97 @@ export function listProjects(page = 1, pageSize = PROJECTS_PAGE_SIZE): Promise<P
   );
 }
 
+/** Listado paginado de contribuciones. Devuelve el envelope del contrato. */
+export function listContributions(
+  page = 1,
+  pageSize = CONTRIBUTIONS_PAGE_SIZE,
+): Promise<ContributionListDto> {
+  return requestOrFallback<ContributionListDto>(
+    "/contributions",
+    { page, pageSize },
+    { items: [], total: 0, page, pageSize },
+  );
+}
+
 /** Detalle de un proyecto por slug. */
-export function getProject(slug: string): Promise<ProjectDetailDto> {
-  return requestOrFallback<ProjectDetailDto>(
+export function getProject(slug: string): Promise<ProjectDetailDto | null> {
+  return requestOrFallback<ProjectDetailDto | null>(
     `/projects/${encodeURIComponent(slug)}`,
     undefined,
     // Un detalle inexistente: la página de detalle no se va a generar, pero
     // el build no se rompe. `getStaticPaths` filtra los que no existen.
-    null as unknown as ProjectDetailDto,
+    null,
   );
 }
 
-/** Une un resumen con su detalle: la tarjeta muestra año y estado, que sólo
- * vienen del endpoint de detalle. */
-function withDetail(summary: ProjectSummaryDto, detail: ProjectDetailDto): ProjectWithDetail {
-  return { ...detail, summary };
+/** Detalle de una contribución por slug. */
+export function getContribution(slug: string): Promise<ContributionDetailDto | null> {
+  return requestOrFallback<ContributionDetailDto | null>(
+    `/contributions/${encodeURIComponent(slug)}`,
+    undefined,
+    // Mismo criterio que `getProject`: una contribución que no existe no
+    // genera ruta, pero no rompe el build.
+    null,
+  );
 }
 
+/** Los dos detalles que el sitio puede resolver. */
+type DetailDto = ProjectDetailDto | ContributionDetailDto;
+
 /**
- * Resuelve los detalles de una página de resúmenes.
+ * Resuelve los detalles de una lista de slugs.
  *
  * Un detalle que no se pudo obtener (API caída) se descarta en lugar de
- * romper el build: la tarjeta se salta, pero el resto de la página se
- * construye.
+ * romper el build: la página se salta, pero el resto se construye.
  */
-async function resolveDetails(summaries: ProjectSummaryDto[]): Promise<ProjectWithDetail[]> {
-  const resolved = await Promise.all(
-    summaries.map(async (summary) => {
-      const detail = await getProject(summary.slug);
-      return detail ? withDetail(summary, detail) : null;
-    }),
-  );
+async function resolveDetails<TDetail extends DetailDto>(
+  slugs: string[],
+  get: (slug: string) => Promise<TDetail | null>,
+): Promise<TDetail[]> {
+  const resolved: (TDetail | null)[] = await Promise.all(slugs.map((slug) => get(slug)));
 
-  return resolved.filter((project): project is ProjectWithDetail => project !== null);
+  return resolved.filter((detail): detail is TDetail => detail !== null);
 }
 
 /**
- * Una página del listado con los detalles ya resueltos.
+ * Una página del listado de proyectos, construida SÓLO con resúmenes.
+ *
+ * No pide el detalle de ningún proyecto: la tarjeta del listado muestra
+ * título, descripción, año y estado, y los cuatro vienen del resumen. Pedir
+ * el detalle de cada uno era un pedido por tarjeta — un patrón N+1 que
+ * además convertía un fallo puntual de la API en una tarjeta que
+ * desaparecía del listado en silencio.
  */
-export async function getProjectPage(
+export async function getProjectSummaryPage(
   page = 1,
   pageSize = PROJECTS_PAGE_SIZE,
 ): Promise<ProjectPage> {
   const list = await listProjects(page, pageSize);
   const appliedPageSize = list.pageSize > 0 ? list.pageSize : PROJECTS_PAGE_SIZE;
 
-  const items = await resolveDetails(list.items);
+  return {
+    items: list.items,
+    total: list.total,
+    page: list.page,
+    pageSize: appliedPageSize,
+    lastPage: Math.max(1, Math.ceil(list.total / appliedPageSize)),
+  };
+}
+
+/**
+ * Una página del listado de contribuciones, construida SÓLO con resúmenes.
+ *
+ * Igual que el de proyectos: el listado no toca el endpoint de detalle.
+ */
+export async function getContributionSummaryPage(
+  page = 1,
+  pageSize = CONTRIBUTIONS_PAGE_SIZE,
+): Promise<ContributionPage> {
+  const list = await listContributions(page, pageSize);
+  const appliedPageSize = list.pageSize > 0 ? list.pageSize : CONTRIBUTIONS_PAGE_SIZE;
 
   return {
-    items,
+    items: list.items,
     total: list.total,
     page: list.page,
     pageSize: appliedPageSize,
@@ -190,9 +245,26 @@ export async function getAllProjectSummaries(): Promise<ProjectSummaryDto[]> {
   let page = 1;
 
   for (;;) {
-    const list = await listProjects(page, PROJECTS_PAGE_SIZE);
-    summaries.push(...list.items);
-    if (list.items.length === 0 || summaries.length >= list.total) break;
+    const { items, total } = await getProjectSummaryPage(page, PROJECTS_PAGE_SIZE);
+    summaries.push(...items);
+    if (items.length === 0 || summaries.length >= total) break;
+    page += 1;
+  }
+
+  return summaries;
+}
+
+/**
+ * Todos los resúmenes de contribuciones, recorriendo las páginas de la API.
+ */
+export async function getAllContributionSummaries(): Promise<ContributionSummaryDto[]> {
+  const summaries: ContributionSummaryDto[] = [];
+  let page = 1;
+
+  for (;;) {
+    const { items, total } = await getContributionSummaryPage(page, CONTRIBUTIONS_PAGE_SIZE);
+    summaries.push(...items);
+    if (items.length === 0 || summaries.length >= total) break;
     page += 1;
   }
 
@@ -201,8 +273,40 @@ export async function getAllProjectSummaries(): Promise<ProjectSummaryDto[]> {
 
 /**
  * Todos los proyectos con su detalle resuelto.
+ *
+ * Sólo lo usan las páginas de detalle (`getStaticPaths`), que necesitan el
+ * cuerpo en markdown. El listado nunca lo llama.
  */
-export async function getAllProjects(): Promise<ProjectWithDetail[]> {
+export async function getAllProjects(): Promise<ProjectDetailDto[]> {
   const summaries = await getAllProjectSummaries();
-  return resolveDetails(summaries);
+  return resolveDetails(
+    summaries.map((summary) => summary.slug),
+    getProject,
+  );
+}
+
+/**
+ * Todas las contribuciones con su detalle resuelto.
+ *
+ * Igual que `getAllProjects`: sólo las páginas de detalle lo necesitan.
+ */
+export async function getAllContributions(): Promise<ContributionDetailDto[]> {
+  const summaries = await getAllContributionSummaries();
+  return resolveDetails(
+    summaries.map((summary) => summary.slug),
+    getContribution,
+  );
+}
+
+/**
+ * Cuántas contribuciones hay publicadas.
+ *
+ * No hace falta listarlas para contarlas: el envelope trae el total. La
+ * página de detalle de la API con `pageSize=1` es la forma más barata de
+ * saberlo, y este número decide si el toggle entre catálogos se renderiza:
+ * un enlace a un catálogo vacío es ruido.
+ */
+export async function countContributions(): Promise<number> {
+  const list = await listContributions(1, 1);
+  return list.total;
 }

@@ -1,0 +1,52 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ContributionCard from "../../components/ContributionCard.astro";
+import ListToggle from "../../components/ListToggle.astro";
+import Pagination from "../../components/Pagination.astro";
+import { getContributionSummaryPage, CONTRIBUTIONS_PAGE_SIZE } from "../../lib/api";
+
+/**
+ * Primera página del catálogo de contribuciones.
+ *
+ * La ruta existe siempre: con el catálogo vacío tiene que quedar el estado
+ * vacío, no un 404. Las páginas 2..N viven en `[...page].astro`.
+ */
+const page = await getContributionSummaryPage(1, CONTRIBUTIONS_PAGE_SIZE);
+
+const title = "Contribuciones — AJN";
+const description =
+  "Contribuciones de AJN a proyectos de otros: correcciones, mejoras y trabajo upstream.";
+---
+
+<BaseLayout title={title} description={description} path="/contributions/">
+  <div class="container">
+    <section class="section" id="contribuciones" aria-labelledby="h-contribuciones">
+      <div class="section-head">
+        <h1 id="h-contribuciones">Contribuciones</h1>
+        <span class="section-count">{page.total} contribuciones</span>
+      </div>
+      <ListToggle active="contributions" />
+      {
+        page.items.length > 0 ? (
+          <div class="card-list">
+            {page.items.map((contribution) => (
+              <ContributionCard contribution={contribution} headingLevel={2} />
+            ))}
+          </div>
+        ) : (
+          <div class="empty-state">
+            <p>Todavía no hay contribuciones publicadas. El catálogo se completa a medida que se registre cada pull request.</p>
+          </div>
+        )
+      }
+      <Pagination
+        currentPage={page.page}
+        lastPage={page.lastPage}
+        total={page.total}
+        pageSize={page.pageSize}
+        baseUrl="/contributions"
+        label="Paginación de contribuciones"
+      />
+    </section>
+  </div>
+</BaseLayout>

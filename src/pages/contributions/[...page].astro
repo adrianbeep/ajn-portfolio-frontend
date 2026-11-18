@@ -1,0 +1,87 @@
+---
+import type { GetStaticPaths } from "astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ContributionCard from "../../components/ContributionCard.astro";
+import ListToggle from "../../components/ListToggle.astro";
+import Pagination from "../../components/Pagination.astro";
+import { getContributionSummaryPage, CONTRIBUTIONS_PAGE_SIZE } from "../../lib/api";
+import type { ContributionPage } from "../../lib/types";
+
+/**
+ * Páginas 2..N del catálogo de contribuciones.
+ *
+ * La primera página vive en `index.astro`. Si el catálogo tiene una sola
+ * página —o está vacío— no se genera ninguna ruta: `/contributions/2/` no
+ * existe y no tiene por qué existir.
+ */
+export const getStaticPaths = (async () => {
+  const first = await getContributionSummaryPage(1, CONTRIBUTIONS_PAGE_SIZE);
+  if (first.lastPage <= 1) return [];
+
+  const paths = [];
+
+  for (let number = 2; number <= first.lastPage; number += 1) {
+    const listing = await getContributionSummaryPage(number, CONTRIBUTIONS_PAGE_SIZE);
+    paths.push({ params: { page: String(number) }, props: { listing } });
+  }
+
+  return paths;
+}) satisfies GetStaticPaths;
+
+interface Props {
+  listing: ContributionPage;
+}
+
+const { listing } = Astro.props;
+
+const title = `Contribuciones — AJN · Página ${listing.page}`;
+const description =
+  "Contribuciones de AJN a proyectos de otros: correcciones, mejoras y trabajo upstream.";
+
+/** Los links del head (rel=prev/next) son absolutos, como el canonical. */
+const absoluteUrl = (path: string) => new URL(path, Astro.site ?? Astro.url).href;
+
+const prevUrl =
+  listing.page > 1 ? absoluteUrl(`/contributions/${listing.page - 1}/`) : undefined;
+const nextUrl =
+  listing.page < listing.lastPage ? absoluteUrl(`/contributions/${listing.page + 1}/`) : undefined;
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  path={`/contributions/${listing.page}/`}
+  prevUrl={prevUrl}
+  nextUrl={nextUrl}
+>
+  <div class="container">
+    <section class="section" id="contribuciones" aria-labelledby="h-contribuciones">
+      <div class="section-head">
+        <h1 id="h-contribuciones">Contribuciones</h1>
+        <span class="section-count">{listing.total} contribuciones</span>
+      </div>
+      <ListToggle active="contributions" />
+      {
+        listing.items.length > 0 ? (
+          <div class="card-list">
+            {listing.items.map((contribution) => (
+              <ContributionCard contribution={contribution} headingLevel={2} />
+            ))}
+          </div>
+        ) : (
+          <div class="empty-state">
+            <p>Todavía no hay contribuciones en esta página.</p>
+          </div>
+        )
+      }
+      <Pagination
+        currentPage={listing.page}
+        lastPage={listing.lastPage}
+        total={listing.total}
+        pageSize={listing.pageSize}
+        baseUrl="/contributions"
+        label="Paginación de contribuciones"
+      />
+    </section>
+  </div>
+</BaseLayout>

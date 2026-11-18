@@ -2,10 +2,12 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import CorrienteField from "../components/CorrienteField.astro";
 import ProjectCard from "../components/ProjectCard.astro";
-import { getProjectPage, PROJECTS_PREVIEW_COUNT } from "../lib/api";
+import { getProjectSummaryPage, PROJECTS_PREVIEW_COUNT } from "../lib/api";
 import { site, stack } from "../lib/site";
 
-const preview = await getProjectPage(1, PROJECTS_PREVIEW_COUNT);
+// La home muestra una porción del catálogo: con los resúmenes alcanza,
+// porque la tarjeta no necesita el detalle de cada proyecto.
+const preview = await getProjectSummaryPage(1, PROJECTS_PREVIEW_COUNT);
 ---
 
 <BaseLayout>

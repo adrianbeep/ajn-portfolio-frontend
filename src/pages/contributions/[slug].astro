@@ -1,0 +1,76 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import MarkdownContent from "../../components/MarkdownContent.astro";
+import { getAllContributions } from "../../lib/api";
+import { renderMarkdown } from "../../lib/markdown";
+import type { ContributionDetailDto } from "../../lib/types";
+
+/**
+ * Detalle de una contribución.
+ *
+ * Igual que el detalle de proyecto: el cuerpo en markdown vive en el
+ * endpoint de detalle, así que esta ruta sí lo necesita. Si el catálogo
+ * está vacío no hay rutas y la página no existe.
+ */
+export async function getStaticPaths() {
+  const contributions = await getAllContributions();
+  return contributions.map((contribution) => ({
+    params: { slug: contribution.slug },
+    props: { contribution },
+  }));
+}
+
+interface Props {
+  contribution: ContributionDetailDto;
+}
+
+const { contribution } = Astro.props;
+const html = await renderMarkdown(contribution.content);
+const year = new Date(contribution.createdAt).getUTCFullYear();
+---
+
+<BaseLayout
+  title={`${contribution.title} — AJN`}
+  description={contribution.description}
+  path={`/contributions/${contribution.slug}/`}
+>
+  <div class="container">
+    <article class="detail">
+      <a class="detail__back" href="/contributions/">← Volver a contribuciones</a>
+      <div>
+        <p class="eyebrow">{contribution.state}</p>
+        <h1>{contribution.title}</h1>
+      </div>
+      <p class="hero__lede">{contribution.description}</p>
+      <div class="detail__meta">
+        <span class="meta">{year}</span>
+        <span class="meta">/{contribution.slug}</span>
+        <a
+          class="meta detail__link"
+          href={contribution.urlPrContribution}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Ver la PR<span aria-hidden="true"> ↗</span>
+        </a>
+      </div>
+      {
+        contribution.urlThumbnail && (
+          /* Si la miniatura no carga se saca el contenedor entero, no sólo
+             el <img>: el div tiene aspect-ratio 4/3 y sin la imagen se queda
+             como una caja vacía de 762px de alto al principio de la entrada. */
+          <div class="detail__cover">
+            <img
+              src={contribution.urlThumbnail}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onerror="this.closest('.detail__cover')?.remove()"
+            />
+          </div>
+        )
+      }
+      <MarkdownContent html={html} />
+    </article>
+  </div>
+</BaseLayout>
