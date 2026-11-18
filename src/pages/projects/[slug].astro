@@ -3,7 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import MarkdownContent from "../../components/MarkdownContent.astro";
 import { getAllProjects } from "../../lib/api";
 import { renderMarkdown } from "../../lib/markdown";
-import type { ProjectWithDetail } from "../../lib/types";
+import type { ProjectDetailDto } from "../../lib/types";
 
 export async function getStaticPaths() {
   const projects = await getAllProjects();
@@ -14,7 +14,7 @@ export async function getStaticPaths() {
 }
 
 interface Props {
-  project: ProjectWithDetail;
+  project: ProjectDetailDto;
 }
 
 const { project } = Astro.props;
@@ -41,13 +41,16 @@ const year = new Date(project.createdAt).getUTCFullYear();
       </div>
       {
         project.urlThumbnail && (
+          /* Si la miniatura no carga se saca el contenedor entero, no sólo
+             el <img>: el div tiene aspect-ratio 4/3 y sin la imagen se queda
+             como una caja vacía de 762px de alto al principio de la entrada. */
           <div class="detail__cover">
             <img
               src={project.urlThumbnail}
               alt=""
               loading="lazy"
               decoding="async"
-              onerror="this.remove()"
+              onerror="this.closest('.detail__cover')?.remove()"
             />
           </div>
         )
