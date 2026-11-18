@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import CorrienteField from "../components/CorrienteField.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import { getProjectPage, PROJECTS_PREVIEW_COUNT } from "../lib/api";
 import { site, stack } from "../lib/site";
@@ -9,8 +10,9 @@ const preview = await getProjectPage(1, PROJECTS_PREVIEW_COUNT);
 
 <BaseLayout>
   <section class="hero container">
-    <p class="eyebrow hero__eyebrow">Ingeniero de software</p>
-    <h1 class="hero__title">Construyo software que se sostiene en pie.</h1>
+    <CorrienteField />
+    <p class="eyebrow hero__eyebrow">{site.role}</p>
+    <h1 class="hero__title">{site.fullName}</h1>
     <p class="hero__lede">{site.tagline} Proyectos reales, con su contexto y su historia completa.</p>
     <div class="hero__actions">
       <a class="button button--primary" href="#proyectos">Ver proyectos</a>
