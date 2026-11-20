@@ -10,6 +10,7 @@
  *   GET /projects/{slug}      -> project detail
  *   GET /contributions        -> { items, total, page, pageSize }
  *   GET /contributions/{slug} -> contribution detail
+ *   GET /__stats              -> how many times each URL was requested
  *
  * The fixture mirrors the backend seed: 2 projects and 0 contributions.
  *
@@ -124,6 +125,30 @@ function sendJson(res, status, body) {
   res.end(payload);
 }
 
+/**
+ * Requests per URL (path + query).
+ *
+ * The build has to ask for every URL exactly once: a second request for the
+ * same slug means an N+1 crept back into the listing. `GET /__stats` exposes
+ * the counts so the e2e script can assert it.
+ */
+const requestCounts = new Map();
+
+/**
+ * Endpoints that are instrumentation, not API traffic.
+ *
+ * `/health` is polled until the stub answers and `/__stats` is read by the
+ * test script: counting them would report traffic that never happened.
+ */
+const UNCOUNTED_PATHS = new Set(["/health", "/__stats"]);
+
+function countRequest(url) {
+  if (UNCOUNTED_PATHS.has(url.pathname)) return;
+
+  const key = `${url.pathname}${url.search}`;
+  requestCounts.set(key, (requestCounts.get(key) ?? 0) + 1);
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://localhost:${options.port}`);
   const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -132,6 +157,8 @@ const server = http.createServer((req, res) => {
     sendJson(res, 405, { title: "Method Not Allowed", status: 405 });
     return;
   }
+
+  countRequest(url);
 
   // GET /projects/{slug}
   const detailMatch = path.match(/^\/projects\/([^/]+)$/);
@@ -192,6 +219,12 @@ const server = http.createServer((req, res) => {
     const items = contributions.slice(start, start + pageSize).map(toContributionSummary);
 
     sendJson(res, 200, { items, total: contributions.length, page, pageSize });
+    return;
+  }
+
+  // GET /__stats
+  if (path === "/__stats") {
+    sendJson(res, 200, Object.fromEntries(requestCounts));
     return;
   }
 
