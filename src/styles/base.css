@@ -220,6 +220,29 @@ td {
   }
 }
 
+/* La transición del tema.
+
+   Los tokens de color están registrados con `@property` (ver tokens.css), así
+   que se pueden interpolar. La transición va acá y no en cada componente:
+   al transicionar el token, todo lo que lo usa sigue la interpolación.
+
+   El atributo `data-theme-switch` lo pone el toggle mientras dura el cambio:
+   sin él, cambiar el tema al cargar la página animaría el primer pintado y
+   se vería un flash. */
+html[data-theme-switch] {
+  transition:
+    --color-bg var(--duration-theme) var(--ease-out),
+    --color-surface var(--duration-theme) var(--ease-out),
+    --color-surface-2 var(--duration-theme) var(--ease-out),
+    --color-fg var(--duration-theme) var(--ease-out),
+    --color-fg-muted var(--duration-theme) var(--ease-out),
+    --color-border var(--duration-theme) var(--ease-out),
+    --color-accent var(--duration-theme) var(--ease-out),
+    --color-accent-fg var(--duration-theme) var(--ease-out),
+    --color-overlay var(--duration-theme) var(--ease-out),
+    --effect-line var(--duration-theme) var(--ease-out);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

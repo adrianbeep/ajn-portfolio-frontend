@@ -468,6 +468,9 @@
 .shiki span {
   color: var(--shiki-dark);
   background-color: var(--color-surface);
+  /* El color del token de Shiki cambia con el tema: sin esta transición el
+     bloque de código salta mientras el resto de la página interpola. */
+  transition: color var(--duration-theme) var(--ease-out);
 }
 
 [data-theme="light"] .shiki,

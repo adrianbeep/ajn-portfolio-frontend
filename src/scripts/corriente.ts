@@ -126,6 +126,33 @@ function readToken(styles: CSSStyleDeclaration, name: string): string {
 }
 
 /**
+ * Convierte un tiempo CSS ("240ms", ".24s") a milisegundos.
+ *
+ * El navegador serializa los tiempos en segundos: el token
+ * `--duration-theme` se declara como `240ms` pero su valor computado llega
+ * como `.24s`. Parsear a ciegas daría 0.24 y una transición de un cuarto
+ * de milisegundo.
+ */
+function parseTimeMs(value: string): number {
+  const match = /^([0-9]*\.?[0-9]+)(ms|s)$/.exec(value.trim());
+  if (!match) return Number.NaN;
+  const amount = Number.parseFloat(match[1]);
+  return match[2] === "s" ? amount * 1000 : amount;
+}
+
+/**
+ * Lee la duración de la transición de tema, en ms.
+ *
+ * Es el token `--duration-theme`: el canvas tiene que seguir al token
+ * mientras interpola, así que necesita saber cuánto dura ese cambio. El
+ * valor de respaldo es el que declara el token.
+ */
+function readThemeDuration(styles: CSSStyleDeclaration): number {
+  const parsed = parseTimeMs(styles.getPropertyValue("--duration-theme"));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 240;
+}
+
+/**
  * Monta el campo de corrientes sobre el canvas `[data-corriente]`.
  *
  * Es idempotente: si ya hay una instancia viva (una navegación client-side
@@ -156,6 +183,13 @@ export function mountCorriente(): void {
     lines: [] as Line[],
     colors: { line: "", accent: "", alpha: 1, accentAlpha: 0.62 } as Colors,
     pointer: { x: -9999, y: -9999, tx: -9999, ty: -9999, inside: false, influence: 0 } as Pointer,
+    /* Instante en el que termina la morph del tema (0 = no hay morph).
+       El canvas pinta píxeles: no puede seguir solo a un token que
+       interpola, así que hay que redibujar mientras dura. */
+    themeMorphUntil: 0,
+    /* Si el loop de dibujo se levantó para acompañar la morph: si ya
+       estaba corriendo, al terminarla hay que dejarlo correr como estaba. */
+    morphStartedLoop: false,
   };
 
   /* ==================================================================
@@ -369,10 +403,17 @@ export function mountCorriente(): void {
     const pointer = state.pointer;
     const now = performance.now();
 
+    /* Mientras el tema interpola hay que dibujar en cada frame: los
+       tokens de color están a mitad de camino y el campo sigue al token,
+       no al valor final. */
+    const morphing = now < state.themeMorphUntil;
+
     /* Throttling por presupuesto de tiempo: el rAF corre siempre, pero
-       sólo se dibuja cada 33ms con el mouse activo y 50ms en idle. */
+       sólo se dibuja cada 33ms con el mouse activo y 50ms en idle.
+       Durante la morph del tema no hay throttle: si lo hubiera, el campo
+       se quedaría con el color viejo mientras la página ya cambió. */
     const interval = pointer.inside ? INTERVAL_ACTIVE : INTERVAL_IDLE;
-    if (now - state.last < interval) {
+    if (!morphing && now - state.last < interval) {
       state.frame = requestAnimationFrame(step);
       return;
     }
@@ -389,9 +430,22 @@ export function mountCorriente(): void {
 
     state.time += dt;
     integrate();
+
+    /* Los tokens de color interpolan durante la transición del tema, así
+       que hay que releerlos en cada frame: con los colores cacheados, el
+       campo se quedaría con el color viejo mientras la página ya cambió. */
+    if (morphing) cacheColors();
     draw();
 
     state.frame = requestAnimationFrame(step);
+
+    /* Terminó la morph: el campo vuelve a su ritmo normal. Si el loop se
+       levantó sólo para acompañar el cambio de tema y el puntero no está
+       sobre el canvas, se baja. */
+    if (!morphing && state.themeMorphUntil !== 0) {
+      state.themeMorphUntil = 0;
+      if (state.morphStartedLoop && !pointer.inside) stop();
+    }
   };
 
   const start = (): void => {
@@ -478,6 +532,34 @@ export function mountCorriente(): void {
   const themeObserver = new MutationObserver(() => {
     cacheColors();
     draw();
+
+    /* Con movimiento reducido la transición del tema dura 0.01ms: en este
+       momento el token todavía tiene el color viejo, y en el frame
+       siguiente tampoco (la transición arranca en ese mismo frame). El
+       color final aparece un frame más tarde, así que hay que releerlo
+       ahí. */
+    if (reducedMotion.matches) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          cacheColors();
+          draw();
+        });
+      });
+      return;
+    }
+
+    /* El canvas pinta píxeles: no puede seguir solo a un token que
+       interpola. Acá se marca cuánto dura la morph y se levanta el loop
+       para que cada frame relea los colores y dibuje con los del frame. */
+    const styles = getComputedStyle(document.documentElement);
+    state.themeMorphUntil = performance.now() + readThemeDuration(styles) + 120;
+
+    /* Si el loop no estaba corriendo, el que se levanta acá es el de la
+       morph: al terminarla hay que bajarlo (si el puntero no está sobre
+       el canvas). Si ya estaba corriendo, sigue como estaba. */
+    const wasRunning = state.frame !== 0;
+    start();
+    state.morphStartedLoop = !wasRunning && state.frame !== 0;
   });
   themeObserver.observe(document.documentElement, {
     attributes: true,

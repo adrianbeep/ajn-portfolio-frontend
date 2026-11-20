@@ -8,6 +8,28 @@
   (() => {
     const root = document.documentElement;
 
+    // Convierte un tiempo CSS ("240ms", ".24s") a milisegundos.
+    //
+    // El navegador serializa los tiempos en segundos: el token se declara
+    // como `240ms` pero su valor computado llega como `.24s`. Parsear a
+    // ciegas daría 0.24 y una transición de un cuarto de milisegundo.
+    const toMs = (value) => {
+      const match = /^([0-9]*\.?[0-9]+)(ms|s)$/.exec(value.trim());
+      if (!match) return Number.NaN;
+      const amount = Number.parseFloat(match[1]);
+      return match[2] === "s" ? amount * 1000 : amount;
+    };
+
+    // Duración de la transición del tema, en ms.
+    //
+    // Se lee del token para que el script y el CSS no se desincronicen. El
+    // margen va a propósito: si el atributo que habilita la transición se
+    // saca antes de que termine, el color queda a medio camino.
+    const readThemeDuration = () => {
+      const parsed = toMs(getComputedStyle(root).getPropertyValue("--duration-theme"));
+      return Number.isFinite(parsed) && parsed > 0 ? parsed + 20 : 260;
+    };
+
     const paint = (button) => {
       const isLight = root.dataset.theme === "light";
       const label = button.querySelector("[data-theme-label]");
@@ -22,9 +44,25 @@
       button.setAttribute("aria-pressed", String(isLight));
     };
 
+    // La transición del tema vive en el atributo `data-theme-switch`: hay que
+    // ponerlo ANTES de cambiar el valor del token, porque la transición se
+    // declara en el momento del cambio. Después se saca, para que un cambio
+    // posterior no anime nada.
+    let themeSwitchTimer = 0;
+
+    const switchTheme = () => {
+      root.setAttribute("data-theme-switch", "");
+      root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
+
+      window.clearTimeout(themeSwitchTimer);
+      themeSwitchTimer = window.setTimeout(() => {
+        root.removeAttribute("data-theme-switch");
+      }, readThemeDuration());
+    };
+
     document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
       button.addEventListener("click", () => {
-        root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
+        switchTheme();
         try {
           localStorage.setItem("theme", root.dataset.theme);
         } catch {}

@@ -160,4 +160,68 @@ describe("invariantes del design system", () => {
       }
     });
   });
+
+  describe("tokens animables", () => {
+    const tokens = readTokens();
+    const css = readStyle("tokens.css");
+
+    /**
+     * Tokens de color que tienen que interpolar en el cambio de tema.
+     *
+     * Un token registrado con `@property` y `syntax: "<color>"` se puede
+     * transicionar: el navegador interpola el valor y todo lo que lo usa
+     * sigue la interpolación. Sin el registro, cambiar de tema reemplaza
+     * los colores de golpe y la página "salta".
+     */
+    const ANIMATABLE_TOKENS = [
+      "--color-bg",
+      "--color-surface",
+      "--color-surface-2",
+      "--color-fg",
+      "--color-fg-muted",
+      "--color-border",
+      "--color-accent",
+      "--color-accent-fg",
+      "--color-overlay",
+      "--effect-line",
+    ];
+
+    it("todo token de color que interpola está registrado con @property", () => {
+      const offenders: string[] = [];
+
+      for (const token of ANIMATABLE_TOKENS) {
+        const block = new RegExp(`@property\\s+${token}\\s*\\{([^}]*)\\}`).exec(css);
+
+        if (!block) {
+          offenders.push(`${token} no está registrado con @property`);
+          continue;
+        }
+
+        const body = block[1];
+        if (!/syntax\s*:\s*"<color>"/.test(body)) {
+          offenders.push(`${token} no declara syntax: "<color>"`);
+        }
+        if (!/inherits\s*:\s*true/.test(body)) {
+          offenders.push(`${token} no declara inherits: true`);
+        }
+      }
+
+      expect(
+        offenders,
+        `Tokens de color que no pueden interpolar:\n${offenders.join("\n")}\n\n` +
+          "Registralos en tokens.css, antes del bloque :root:\n" +
+          ANIMATABLE_TOKENS.map(
+            (token) =>
+              `@property ${token} { syntax: "<color>"; inherits: true; initial-value: <color>; }`,
+          ).join("\n"),
+      ).toEqual([]);
+    });
+
+    it("la duración del cambio de tema está declarada", () => {
+      expect(
+        tokens.root.tokens.get("--duration-theme"),
+        "falta el token --duration-theme: es la duración de la transición del tema",
+      ).toBeDefined();
+    });
+  });
 });
