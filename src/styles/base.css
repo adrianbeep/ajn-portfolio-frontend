@@ -70,6 +70,11 @@ p {
 
 a {
   color: inherit;
+  /* El subrayado por defecto del navegador es una sorpresa: un link que se
+     olvide de declararlo aparece subrayado sin que nadie lo haya pedido.
+     Por defecto no hay subrayado, y los componentes que lo quieren lo
+     piden explícitamente. */
+  text-decoration: none;
   text-decoration-thickness: var(--border-width);
   text-underline-offset: 0.2em;
 }

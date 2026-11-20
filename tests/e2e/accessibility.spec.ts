@@ -112,6 +112,58 @@ test.describe("accesibilidad (axe-core, WCAG 2.2 AA)", () => {
     }
   });
 
+  test("el subrayado es opt-in: sólo lo tienen los links de lectura", async ({ page }) => {
+    for (const target of PAGES) {
+      await page.goto(target.path);
+
+      // El subrayado por defecto del navegador es una sorpresa: un link
+      // que se olvide de declararlo aparece subrayado sin que nadie lo haya
+      // pedido. Por defecto no hay subrayado; los links del contenido del
+      // proyecto sí lo piden, porque son enlaces de lectura.
+      const underlined = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("a"))
+          .filter((link) => getComputedStyle(link).textDecorationLine.includes("underline"))
+          .filter((link) => link.closest(".prose") === null)
+          .map(
+            (link) =>
+              `${link.className || link.tagName}: ${(link.textContent ?? "").trim().slice(0, 40)}`,
+          ),
+      );
+
+      expect(underlined, `${target.path}: links subrayados sin pedirlo`).toEqual([]);
+    }
+  });
+
+  test("la tarjeta es un link con nombre propio", async ({ page }) => {
+    await page.goto("/projects/");
+
+    // La tarjeta entera es el link al detalle, así que su nombre accesible
+    // sale de su contenido: el título, la descripción, las tecnologías y el
+    // estado. WCAG 2.5.3 exige que el nombre accesible contenga todo el
+    // texto visible, así que el nombre corto y propio no puede ir en la
+    // tarjeta: quedaría excluido del anuncio.
+    const cards = await page.locator(".card-list a.card").evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        href: node.getAttribute("href") ?? "",
+        name: (node.textContent ?? "").replace(/\s+/g, " ").trim(),
+        nestedLinks: node.querySelectorAll("a").length,
+        title: node.querySelector(".card__title")?.textContent?.trim() ?? "",
+      })),
+    );
+
+    expect(cards.length).toBeGreaterThan(1);
+
+    for (const card of cards) {
+      expect(card.href).toContain("/projects/");
+      expect(
+        card.name,
+        `el nombre accesible de "${card.title}" debería incluir el título`,
+      ).toContain(card.title);
+      // Un link dentro de otro link es HTML inválido.
+      expect(card.nestedLinks).toBe(0);
+    }
+  });
+
   test("las referencias ARIA apuntan a elementos que existen", async ({ page }) => {
     for (const target of PAGES) {
       await page.goto(target.path);

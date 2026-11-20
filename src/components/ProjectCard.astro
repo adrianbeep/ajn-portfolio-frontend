@@ -34,6 +34,14 @@ const monogram = project.title
 const tags = toTechTags(project.technologies);
 ---
 
+{/*
+  La tarjeta entera es el link al detalle del proyecto.
+
+  No lleva texto de "Ver proyecto": la tarjeta ya se levanta y se enciende
+  al pasar el mouse, así que un botón adentro sería redundante y además
+  parecería un control que no existe (un link dentro de otro link no es
+  HTML válido).
+*/}
 <a class="card" href={`/projects/${project.slug}/`}>
   <span class="card__cover">
     {
@@ -69,7 +77,6 @@ const tags = toTechTags(project.technologies);
     }
     <span class="card__meta">
       <span>{year} · {project.state}</span>
-      <span class="card__more">Ver proyecto</span>
     </span>
   </div>
 </a>

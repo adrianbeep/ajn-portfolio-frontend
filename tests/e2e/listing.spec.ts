@@ -32,6 +32,36 @@ test.describe("listado de proyectos", () => {
     expect(hrefs.sort()).toEqual(["/projects/api-gestion/", "/projects/mi-portfolio/"]);
   });
 
+  test("la tarjeta se enciende al pasar el mouse", async ({ page }) => {
+    await page.goto("/projects/");
+
+    const card = page.locator(".card-list a.card").first();
+
+    // El hover es la única señal de que la tarjeta se clickea: el borde se
+    // pone naranja y la tarjeta se levanta. Por eso la tarjeta no lleva un
+    // "Ver proyecto" adentro: sería redundante y parecería un control que
+    // no existe.
+    const accent = await page.evaluate(() => {
+      const hex = getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-accent")
+        .trim();
+      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+      return `rgb(${r}, ${g}, ${b})`;
+    });
+
+    const resting = await card.evaluate((el) => getComputedStyle(el).borderTopColor);
+    expect(resting, "en reposo el borde no debería ser el acento").not.toBe(accent);
+
+    await card.hover();
+
+    await expect
+      .poll(() => card.evaluate((el) => getComputedStyle(el).borderTopColor))
+      .toBe(accent);
+    await expect
+      .poll(() => card.evaluate((el) => getComputedStyle(el).transform))
+      .toContain("-2");
+  });
+
   test("la tarjeta muestra el año y el estado del resumen", async ({ page }) => {
     await page.goto("/projects/");
 
