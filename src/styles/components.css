@@ -225,6 +225,38 @@
   transform: translateY(-1px);
 }
 
+/* La variante de etiqueta es más chica que el chip del stack: vive pegada
+   a la tarjeta de un proyecto, no en la fila del stack de la home. */
+.chip--tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+}
+
+/* El ícono se mide contra el tamaño de la fuente de la etiqueta, así que
+   no lleva un ancho fijo en el markup. */
+.chip__icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex: none;
+  fill: currentColor;
+}
+
+/* --- etiquetas de tecnología --- */
+.card__tags,
+.detail__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.card__tags {
+  margin-block-end: var(--space-4);
+}
+
 /* --- tarjetas de proyecto --- */
 .card-list {
   display: flex;

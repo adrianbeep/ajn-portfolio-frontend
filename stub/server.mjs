@@ -55,6 +55,20 @@ const contributions = fixture.contributions ?? [];
 const MAX_PAGE_SIZE = 100;
 const DEFAULT_PAGE_SIZE = 20;
 
+/**
+ * Orders the projects like the real API does: `CreatedAt DESC`, newest
+ * first.
+ *
+ * The fixture keeps the order of the seed, but the listing the API serves
+ * is not in seed order. Without this the site built against the stub would
+ * show a different catalogue than the one published in production.
+ */
+function byCreatedAtDesc(projects) {
+  return [...projects].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
 function toSummary(project) {
   return {
     id: project.id,
@@ -66,6 +80,9 @@ function toSummary(project) {
     // shows "{year} · {state}" and must not need the detail endpoint.
     state: project.state,
     createdAt: project.createdAt,
+    // Same reasoning for the technologies: the card shows them as tags, so
+    // they have to travel in the summary.
+    technologies: project.technologies ?? [],
   };
 }
 
@@ -161,7 +178,7 @@ const server = http.createServer((req, res) => {
     const { page, pageSize } = readPaging(url);
 
     const start = (page - 1) * pageSize;
-    const items = projects.slice(start, start + pageSize).map(toSummary);
+    const items = byCreatedAtDesc(projects).slice(start, start + pageSize).map(toSummary);
 
     sendJson(res, 200, { items, total: projects.length, page, pageSize });
     return;

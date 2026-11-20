@@ -1,4 +1,6 @@
 ---
+import TechTag from "./TechTag.astro";
+import { toTechTags } from "../lib/tech-tags";
 import type { ProjectSummaryDto } from "../lib/types";
 
 interface Props {
@@ -26,6 +28,10 @@ const monogram = project.title
   .slice(0, 2)
   .map((word) => word[0]?.toUpperCase() ?? "")
   .join("");
+
+// Un proyecto sin tecnologías es un caso válido: entonces no hay lista que
+// dibujar y la tarjeta se queda como estaba.
+const tags = toTechTags(project.technologies);
 ---
 
 <a class="card" href={`/projects/${project.slug}/`}>
@@ -44,12 +50,26 @@ const monogram = project.title
     }
     <span aria-hidden="true">{monogram}</span>
   </span>
-  <span class="card__body">
+  {/* El cuerpo de la tarjeta es un <div> y no un <span>: adentro van el
+      título, la descripción y la lista de etiquetas, y un <span> sólo puede
+      contener contenido de phrasing. `ContributionCard` ya usa <div>. */}
+  <div class="card__body">
     <Heading class="card__title">{project.title}</Heading>
     <p class="card__description">{project.description}</p>
+    {
+      tags.length > 0 && (
+        <ul class="card__tags">
+          {tags.map((tag) => (
+            <li>
+              <TechTag label={tag.label} iconPath={tag.iconPath} />
+            </li>
+          ))}
+        </ul>
+      )
+    }
     <span class="card__meta">
       <span>{year} · {project.state}</span>
       <span class="card__more">Ver proyecto</span>
     </span>
-  </span>
+  </div>
 </a>
