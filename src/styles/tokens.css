@@ -5,6 +5,28 @@
    Tema oscuro por defecto; el tema claro re-declara los mismos roles.
    --------------------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------------
+   Tokens animables.
+
+   Un token de color registrado con `@property` se puede transicionar: el
+   navegador interpola el valor y todo lo que lo usa (fondos, bordes,
+   textos) sigue la interpolación sin declarar una transición por
+   componente. Sin esto, cambiar de tema reemplaza los colores de golpe.
+
+   El `initial-value` es el valor del tema oscuro: es lo que se usa si el
+   token todavía no está declarado.
+   --------------------------------------------------------------------------- */
+@property --color-bg { syntax: "<color>"; inherits: true; initial-value: #000000; }
+@property --color-surface { syntax: "<color>"; inherits: true; initial-value: #0d0d0d; }
+@property --color-surface-2 { syntax: "<color>"; inherits: true; initial-value: #151515; }
+@property --color-fg { syntax: "<color>"; inherits: true; initial-value: #f5f5f4; }
+@property --color-fg-muted { syntax: "<color>"; inherits: true; initial-value: #9a9a96; }
+@property --color-border { syntax: "<color>"; inherits: true; initial-value: #232323; }
+@property --color-accent { syntax: "<color>"; inherits: true; initial-value: #ff6a3d; }
+@property --color-accent-fg { syntax: "<color>"; inherits: true; initial-value: #000000; }
+@property --color-overlay { syntax: "<color>"; inherits: true; initial-value: rgb(255 255 255 / 6%); }
+@property --effect-line { syntax: "<color>"; inherits: true; initial-value: #3d3d3a; }
+
 :root {
   color-scheme: dark;
 
@@ -84,6 +106,10 @@
   --duration-fast: 140ms;
   --duration-base: 160ms;
   --duration-slow: 240ms;
+  /* Duración del cambio de tema: el tiempo que tarda el color en pasar de
+     un tema al otro. Más larga que una transición de hover, porque acá se
+     interpola toda la página. */
+  --duration-theme: 240ms;
 
   /* --- efecto de fondo (campo de corrientes) ---
      El campo se dibuja en un canvas y se pinta con estos tokens. Las dos

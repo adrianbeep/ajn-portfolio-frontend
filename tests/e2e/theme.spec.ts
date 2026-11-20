@@ -97,4 +97,79 @@ test.describe("toggle de tema", () => {
 
     await expect(page.locator("html")).not.toHaveAttribute("data-theme", initial!);
   });
+
+  test("el cambio de tema interpola en lugar de cortar", async ({ page }) => {
+    await page.goto("/projects/");
+
+    const html = page.locator("html");
+
+    /**
+     * El valor computado del token de fondo.
+     *
+     * Con el token registrado con `@property`, el navegador devuelve el
+     * color RESUELTO (`rgb(...)`) y, mientras la transición corre, el
+     * color intermedio del frame.
+     */
+    const readBg = () =>
+      page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue("--color-bg").trim(),
+      );
+
+    const before = await readBg();
+    expect(before, "el token --color-bg tiene que estar definido").not.toBe("");
+
+    // El muestreo vive en la página: un rAF por frame. Si se muestreara
+    // desde Playwright, una ida y vuelta lenta podría saltear los
+    // valores intermedios y el test sería intermitente.
+    await page.evaluate(() => {
+      const root = document.documentElement;
+      const samples: string[] = [];
+      (window as unknown as { __bgSamples: string[] }).__bgSamples = samples;
+
+      const tick = () => {
+        samples.push(getComputedStyle(root).getPropertyValue("--color-bg").trim());
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+
+    await page.locator("[data-theme-toggle]").click();
+
+    // Se espera a que el token interpole: aparecen valores que no son ni
+    // el color de partida ni el de llegada.
+    await expect
+      .poll(
+        async () => {
+          const samples = await page.evaluate(
+            () => (window as unknown as { __bgSamples: string[] }).__bgSamples,
+          );
+          return new Set(samples).size;
+        },
+        { timeout: 3000, intervals: [20, 20, 40, 60] },
+      )
+      .toBeGreaterThan(2);
+
+    // El toggle se limpia solo: el atributo marca el switch en curso y
+    // lo saca cuando el cambio terminó.
+    await expect
+      .poll(() => html.getAttribute("data-theme-switch"), { timeout: 3000 })
+      .toBeNull();
+
+    const after = await readBg();
+    expect(after, "el tema tiene que haber cambiado").not.toBe(before);
+
+    const samples = await page.evaluate(
+      () => (window as unknown as { __bgSamples: string[] }).__bgSamples,
+    );
+
+    // El punto del test: hubo un color intermedio. Si el cambio fuera un
+    // corte, los únicos valores serían los dos extremos.
+    const intermediate = samples.find((value) => value !== before && value !== after);
+    expect(
+      intermediate,
+      `el cambio de tema cortó de golpe. Valores vistos: ${JSON.stringify(samples)}`,
+    ).toBeDefined();
+    expect(intermediate).not.toBe(before);
+    expect(intermediate).not.toBe(after);
+  });
 });

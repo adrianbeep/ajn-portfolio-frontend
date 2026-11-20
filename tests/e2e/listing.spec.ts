@@ -41,12 +41,17 @@ test.describe("listado de proyectos", () => {
     // pone naranja y la tarjeta se levanta. Por eso la tarjeta no lleva un
     // "Ver proyecto" adentro: sería redundante y parecería un control que
     // no existe.
+    //
+    // El acento se lee de un elemento que lo usa: el token está registrado
+    // con `@property`, así que el navegador lo devuelve ya resuelto
+    // ("rgb(...)") y no como el hex que lo declara.
     const accent = await page.evaluate(() => {
-      const hex = getComputedStyle(document.documentElement)
-        .getPropertyValue("--color-accent")
-        .trim();
-      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-      return `rgb(${r}, ${g}, ${b})`;
+      const probe = document.createElement("span");
+      probe.style.color = "var(--color-accent)";
+      document.body.append(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
     });
 
     const resting = await card.evaluate((el) => getComputedStyle(el).borderTopColor);
