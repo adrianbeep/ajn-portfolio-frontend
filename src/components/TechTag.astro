@@ -1,0 +1,28 @@
+---
+interface Props {
+  /** Texto de la tecnología: es lo que lleva el significado. */
+  label: string;
+  /**
+   * Path SVG del ícono.
+   *
+   * Si no hay ícono, la etiqueta se renderiza sólo con texto: es el caso
+   * de las tecnologías que el catálogo de íconos no cubre.
+   */
+  iconPath?: string | null;
+}
+
+const { label, iconPath = null } = Astro.props;
+---
+
+<span class="chip chip--tag">
+  {
+    iconPath && (
+      /* El ícono es decorativo: el texto de al lado dice lo mismo. Por eso
+         va escondido para los lectores de pantalla y no es focusable. */
+      <svg class="chip__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d={iconPath} fill="currentColor" />
+      </svg>
+    )
+  }
+  <span>{label}</span>
+</span>

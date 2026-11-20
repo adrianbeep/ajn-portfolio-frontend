@@ -75,6 +75,36 @@ async function waitForStub() {
   throw new Error(`El stub API no respondió en el puerto ${STUB_PORT}.`);
 }
 
+/**
+ * Comprueba que el build no pidió ninguna URL más de una vez.
+ *
+ * El detalle de cada proyecto se pide una vez por proyecto: es lo que
+ * genera la ruta de detalle. Lo que NO puede pasar es que el listado pida
+ * el detalle de cada tarjeta (un N+1), porque entonces cada slug se
+ * pediría dos veces. El contador del stub lo delata.
+ */
+async function assertNoRepeatedRequests() {
+  const response = await fetch(`http://127.0.0.1:${STUB_PORT}/__stats`);
+  if (!response.ok) {
+    throw new Error(`El stub no devolvió las estadísticas de requests (${response.status}).`);
+  }
+
+  const stats = await response.json();
+  const entries = Object.entries(stats).sort(([a], [b]) => a.localeCompare(b));
+
+  console.log("\n→ Requests a la API durante el build:\n");
+  for (const [url, count] of entries) {
+    console.log(`   ${count}x  ${url}`);
+  }
+  console.log("");
+
+  const repeated = entries.filter(([, count]) => count > 1);
+  if (repeated.length > 0) {
+    const detail = repeated.map(([url, count]) => `${count}x ${url}`).join(", ");
+    throw new Error(`El build pidió más de una vez la misma URL: ${detail}.`);
+  }
+}
+
 const stub = spawn(process.execPath, [join(repoRoot, "stub", "server.mjs"), "--port", String(STUB_PORT)], {
   cwd: repoRoot,
   stdio: "ignore",
@@ -92,6 +122,8 @@ try {
       PNPM_BIN,
     },
   });
+
+  await assertNoRepeatedRequests();
 
   console.log(`\n→ Corriendo los tests e2e...\n`);
   await run(`${PNPM_BIN} exec playwright test`, { env: { PNPM_BIN } });

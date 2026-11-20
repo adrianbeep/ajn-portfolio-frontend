@@ -39,6 +39,14 @@ export interface ProjectSummaryDto {
   description: string;
   state: string;
   createdAt: ISODateTime;
+  /**
+   * Tecnologías del proyecto, en el orden en que las puso el autor.
+   *
+   * La API las manda siempre: la lista puede estar vacía, pero nunca es
+   * `null`. Viajan en el resumen porque la tarjeta las pinta como
+   * etiquetas, y pedir el detalle sólo para mostrarlas sería un N+1.
+   */
+  technologies: string[];
 }
 
 export interface ProjectDetailDto {
@@ -51,6 +59,8 @@ export interface ProjectDetailDto {
   state: State;
   createdAt: ISODateTime;
   updatedAt: ISODateTime | null;
+  /** Las mismas tecnologías del resumen, con las mismas garantías. */
+  technologies: string[];
 }
 
 export type ProjectListDto = PagedList<ProjectSummaryDto>;
