@@ -112,6 +112,28 @@ test.describe("accesibilidad (axe-core, WCAG 2.2 AA)", () => {
     }
   });
 
+  test("el subrayado es opt-in: sólo lo tienen los links de lectura", async ({ page }) => {
+    for (const target of PAGES) {
+      await page.goto(target.path);
+
+      // El subrayado por defecto del navegador es una sorpresa: un link
+      // que se olvide de declararlo aparece subrayado sin que nadie lo haya
+      // pedido. Por defecto no hay subrayado; los links del contenido del
+      // proyecto sí lo piden, porque son enlaces de lectura.
+      const underlined = await page.evaluate(() =>
+        Array.from(document.querySelectorAll("a"))
+          .filter((link) => getComputedStyle(link).textDecorationLine.includes("underline"))
+          .filter((link) => link.closest(".prose") === null)
+          .map(
+            (link) =>
+              `${link.className || link.tagName}: ${(link.textContent ?? "").trim().slice(0, 40)}`,
+          ),
+      );
+
+      expect(underlined, `${target.path}: links subrayados sin pedirlo`).toEqual([]);
+    }
+  });
+
   test("las referencias ARIA apuntan a elementos que existen", async ({ page }) => {
     for (const target of PAGES) {
       await page.goto(target.path);

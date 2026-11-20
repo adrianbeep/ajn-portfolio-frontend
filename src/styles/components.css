@@ -358,6 +358,7 @@
    tarjeta no puede ser un link entero porque adentro va el link al pull
    request, y un link dentro de otro link no es HTML válido. */
 .card__title a {
+  text-decoration: none;
   transition: color var(--duration-fast) var(--ease-out);
 }
 
@@ -445,6 +446,9 @@
 
 .prose a {
   color: var(--color-accent);
+  /* Los links del contenido del proyecto sí se subrayan: son enlaces de
+     lectura, no controles de la interfaz. */
+  text-decoration: underline;
 }
 
 .prose blockquote {
