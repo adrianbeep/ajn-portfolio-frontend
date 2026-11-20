@@ -140,7 +140,7 @@ const requestCounts = new Map();
  * `/health` is polled until the stub answers and `/__stats` is read by the
  * test script: counting them would report traffic that never happened.
  */
-const UNCOUNTED_PATHS = new Set(["/health", "/__stats"]);
+const UNCOUNTED_PATHS = new Set(["/health", "/__stats", "/__stats/reset"]);
 
 function countRequest(url) {
   if (UNCOUNTED_PATHS.has(url.pathname)) return;
@@ -153,7 +153,9 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://localhost:${options.port}`);
   const path = url.pathname.replace(/\/+$/, "") || "/";
 
-  if (req.method !== "GET") {
+  const isStatsReset = req.method === "POST" && path === "/__stats/reset";
+
+  if (req.method !== "GET" && !isStatsReset) {
     sendJson(res, 405, { title: "Method Not Allowed", status: 405 });
     return;
   }
@@ -228,10 +230,24 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // POST /__stats/reset
+  //
+  // The counters are scoped to the build that asked for them: a dev server
+  // running against this same stub would pollute them, and the build would
+  // look like it asked for the same URL several times.
+  if (isStatsReset) {
+    requestCounts.clear();
+    sendJson(res, 200, { status: "reset" });
+    return;
+  }
+
   // GET /health
   if (path === "/health") {
     sendJson(res, 200, {
       status: "healthy",
+      // The pid lets the caller tell this stub from another one already
+      // listening on the same port.
+      pid: process.pid,
       projects: projects.length,
       contributions: contributions.length,
     });

@@ -66,13 +66,48 @@ async function waitForStub() {
   while (Date.now() < deadline) {
     try {
       const response = await fetch(`http://127.0.0.1:${STUB_PORT}/health`);
-      if (response.ok) return;
+      if (response.ok) return await response.json();
     } catch {
       // Todavía no arrancó.
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error(`El stub API no respondió en el puerto ${STUB_PORT}.`);
+}
+
+/**
+ * El stub tiene que ser el que levantó este script.
+ *
+ * Si el puerto ya estaba ocupado, el proceso que responde es otro (un dev
+ * server, por ejemplo) y el build se estaría midiendo contra una API que
+ * este script no controla. Sin esta comprobación, el script sigue como si
+ * nada y las estadísticas son de otro proceso.
+ */
+function assertOwnStub(health) {
+  if (health?.pid !== stub.pid) {
+    throw new Error(
+      `El puerto ${STUB_PORT} lo está usando otro proceso (pid ${health?.pid ?? "?"}). ` +
+        `El build tiene que correr contra el stub de este script: bajá lo que ocupe ` +
+        `el puerto, o corré con STUB_PORT=<otro puerto>.`,
+    );
+  }
+}
+
+/**
+ * Empieza la cuenta de requests desde cero.
+ *
+ * Los contadores son del stub, no del build: un dev server corriendo contra
+ * el mismo stub los ensucia y el build parece haber pedido la misma URL
+ * varias veces.
+ */
+async function resetRequestCounts() {
+  const response = await fetch(`http://127.0.0.1:${STUB_PORT}/__stats/reset`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(`El stub no pudo resetear las estadísticas (${response.status}).`);
+  }
 }
 
 /**
@@ -112,7 +147,11 @@ const stub = spawn(process.execPath, [join(repoRoot, "stub", "server.mjs"), "--p
 
 let failed = false;
 try {
-  await waitForStub();
+  const health = await waitForStub();
+  assertOwnStub(health);
+
+  await resetRequestCounts();
+
   console.log(`\n→ Construyendo el sitio contra el stub (${STUB_PORT})...\n`);
 
   await run(`${PNPM_BIN} build`, {
